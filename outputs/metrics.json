@@ -1,0 +1,94 @@
+{
+  "claim_level_3class_report": {
+    "supported": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "unsupported": {
+      "precision": 0.6097560975609756,
+      "recall": 1.0,
+      "f1-score": 0.7575757575757576,
+      "support": 25.0
+    },
+    "contradicted": {
+      "precision": 1.0,
+      "recall": 0.68,
+      "f1-score": 0.8095238095238095,
+      "support": 50.0
+    },
+    "accuracy": 0.872,
+    "macro avg": {
+      "precision": 0.8699186991869919,
+      "recall": 0.8933333333333334,
+      "f1-score": 0.8556998556998557,
+      "support": 125.0
+    },
+    "weighted avg": {
+      "precision": 0.9219512195121952,
+      "recall": 0.872,
+      "f1-score": 0.8753246753246754,
+      "support": 125.0
+    }
+  },
+  "claim_level_3class_confusion_matrix": [
+    [
+      50,
+      0,
+      0
+    ],
+    [
+      0,
+      25,
+      0
+    ],
+    [
+      0,
+      16,
+      34
+    ]
+  ],
+  "confusion_matrix_labels": [
+    "supported",
+    "unsupported",
+    "contradicted"
+  ],
+  "claim_level_binary_report": {
+    "hallucinated": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 75.0
+    },
+    "supported": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 125.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 125.0
+    }
+  },
+  "avg_faithfulness_score_by_answer_type": {
+    "contradiction": 0.0,
+    "fabrication": 0.5,
+    "grounded": 1.0,
+    "numeric": 0.0
+  },
+  "retrieval": {
+    "recall_at_3": 1.0,
+    "mrr": 0.98
+  }
+}

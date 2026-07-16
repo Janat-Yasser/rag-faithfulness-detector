@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Faithfulness Audit — RAG Case File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDEBE3;
+    --paper-raised:#F7F5EF;
+    --ink:#1E2430;
+    --ink-soft:#5B5E66;
+    --rule:#CFCBBD;
+    --rule-strong:#a9a493;
+    --green:#2F6E4F;
+    --green-bg:#E4EEE7;
+    --red:#8C2F2B;
+    --red-bg:#F2E4E2;
+    --amber:#9A6B1E;
+    --amber-bg:#F1E7D3;
+    --indigo:#333F6B;
+    --indigo-bg:#E4E5EF;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--indigo); color:#fff;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 90px;}
+  a{color:inherit;}
+
+  /* ---------- Header / case block ---------- */
+  .case-header{
+    padding:46px 0 24px;
+    border-bottom:2px solid var(--ink);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:44px;
+    line-height:1.05;
+    margin:0 0 10px;
+    letter-spacing:-0.01em;
+  }
+  h1.title em{font-style:italic; font-weight:500; color:var(--indigo);}
+  .subtitle{
+    max-width:640px;
+    color:var(--ink-soft);
+    font-size:15.5px;
+  }
+  .meta-row{
+    display:flex;
+    gap:36px;
+    margin-top:22px;
+    flex-wrap:wrap;
+  }
+  .meta-item .k{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);}
+  .meta-item .v{font-size:14.5px;margin-top:2px;}
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    border:1px solid var(--rule-strong);
+    margin-top:34px;
+    background:var(--paper-raised);
+  }
+  .kpi{
+    padding:20px 20px;
+    border-right:1px solid var(--rule);
+  }
+  .kpi:last-child{border-right:none;}
+  .kpi .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .kpi .value{
+    font-family:'Fraunces',serif;
+    font-size:34px;
+    font-weight:600;
+    margin-top:6px;
+  }
+  .kpi .sub{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+
+  /* ---------- Section headings ---------- */
+  section{margin-top:56px;}
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--ink);
+    padding-bottom:8px;
+    margin-bottom:22px;
+  }
+  .section-head h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0;
+  }
+  .section-note{font-size:12.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Analysis grid: confusion matrix + bars ---------- */
+  .analysis-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:32px;
+  }
+  .panel{
+    border:1px solid var(--rule-strong);
+    background:var(--paper-raised);
+    padding:22px 22px 18px;
+  }
+  .panel h3{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 16px;
+  }
+  table.cm{width:100%;border-collapse:collapse;font-size:13px;}
+  table.cm th, table.cm td{
+    text-align:center;padding:9px 6px;border:1px solid var(--rule);
+  }
+  table.cm th{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;
+    color:var(--ink-soft); font-weight:500;
+  }
+  table.cm td.diag{font-weight:600;}
+  table.cm td{font-family:'IBM Plex Mono',monospace;}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:14px 0;}
+  .bar-row .lbl{width:110px;font-size:12.5px;flex-shrink:0;}
+  .bar-track{flex:1;height:16px;background:#e2ded0;position:relative;}
+  .bar-fill{height:100%;transition:width .9s cubic-bezier(.2,.8,.2,1);}
+  .bar-row .val{width:42px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;}
+
+  /* ---------- Filter chips ---------- */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:.03em;
+    padding:6px 12px;
+    border:1px solid var(--rule-strong);
+    background:var(--paper-raised);
+    cursor:pointer;
+    user-select:none;
+    color:var(--ink-soft);
+  }
+  .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+  /* ---------- Case ledger ---------- */
+  .ledger{border-top:1px solid var(--ink);}
+  .case-row{
+    border-bottom:1px solid var(--rule);
+    padding:13px 4px;
+    display:grid;
+    grid-template-columns:70px 1fr 140px 100px 22px;
+    align-items:center;
+    gap:14px;
+    cursor:pointer;
+  }
+  .case-row:hover{background:rgba(0,0,0,0.02);}
+  .case-row .cid{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);}
+  .case-row .q{font-size:13.5px;}
+  .case-row .type-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+  .result-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    text-align:center;padding:4px 0;border:1px solid;
+  }
+  .result-tag.correct{color:var(--green);border-color:var(--green);}
+  .result-tag.wrong{color:var(--red);border-color:var(--red);}
+  .chevron{transition:transform .2s ease;color:var(--ink-soft);font-size:12px;}
+  .case-row.open .chevron{transform:rotate(90deg);}
+
+  .case-detail{
+    display:none;
+    padding:6px 4px 24px 84px;
+    border-bottom:1px solid var(--rule);
+  }
+  .case-detail.show{display:block;}
+  .answer-text{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-size:15px;
+    color:var(--ink);
+    margin-bottom:14px;
+    max-width:680px;
+  }
+  .claim-card{
+    border-left:3px solid var(--rule-strong);
+    padding:8px 0 8px 14px;
+    margin-bottom:10px;
+    max-width:680px;
+  }
+  .claim-card .claim-text{font-size:13.5px;margin-bottom:5px;}
+  .claim-card .evidence{
+    font-size:12px;color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .claim-card .evidence b{color:var(--ink);font-weight:500;}
+
+  /* ---------- Stamp badges (signature element) ---------- */
+  .stamp{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:.09em;
+    padding:2px 8px;
+    border:1.5px solid;
+    border-radius:3px;
+    transform:rotate(-3deg);
+    text-transform:uppercase;
+    margin-bottom:6px;
+    animation:stampIn .32s cubic-bezier(.2,1.4,.6,1);
+  }
+  @keyframes stampIn{
+    0%{opacity:0; transform:rotate(-3deg) scale(2.1); filter:blur(1px);}
+    60%{opacity:1;}
+    100%{opacity:1; transform:rotate(-3deg) scale(1);}
+  }
+  .stamp.supported{color:var(--green);border-color:var(--green);background:var(--green-bg);}
+  .stamp.unsupported{color:var(--amber);border-color:var(--amber);background:var(--amber-bg);}
+  .stamp.contradicted{color:var(--red);border-color:var(--red);background:var(--red-bg);}
+
+  /* ---------- Console (playground) ---------- */
+  .console{
+    border:1px solid var(--rule-strong);
+    background:var(--paper-raised);
+    padding:26px;
+  }
+  .console-row{display:grid;grid-template-columns:1fr;gap:16px;}
+  label.field-label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:6px;
+  }
+  select, textarea{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    border:1px solid var(--rule-strong);
+    background:#fff;
+    color:var(--ink);
+  }
+  textarea{min-height:78px;resize:vertical;}
+  .context-preview{
+    margin-top:4px;
+    font-size:12px;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;
+    line-height:1.6;
+  }
+  button.submit{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--ink);color:var(--paper);
+    border:none;padding:12px 22px;
+    cursor:pointer;
+    align-self:start;
+    margin-top:4px;
+  }
+  button.submit:hover{background:var(--indigo);}
+  .console-result{margin-top:22px; border-top:1px dashed var(--rule-strong); padding-top:18px; display:none;}
+  .console-result.show{display:block;}
+  .verdict-line{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); margin-top:14px;}
+
+  footer{
+    margin-top:70px;
+    padding-top:20px;
+    border-top:1px solid var(--rule-strong);
+    font-size:12px;
+    color:var(--ink-soft);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  @media (max-width:760px){
+    .kpi-strip{grid-template-columns:1fr 1fr;}
+    .kpi{border-bottom:1px solid var(--rule);}
+    .analysis-grid{grid-template-columns:1fr;}
+    .case-row{grid-template-columns:50px 1fr 90px 20px; grid-template-areas:none;}
+    .case-row .type-tag{display:none;}
+    .case-detail{padding-left:20px;}
+    h1.title{font-size:32px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="case-header">
+    <div class="eyebrow">
+      <span>Case No. RAG&#8209;FD&#8209;2026&#8209;014</span>
+      <span id="today"></span>
+    </div>
+    <h1 class="title">Faithfulness <em>Audit</em></h1>
+    <div class="subtitle">
+      A claim-by-claim cross-examination of generated answers to astronomy and space-physics
+      questions, checked against retrieved evidence — an offline, inspectable stand-in for the
+      RAGAS entailment check described in Section 6.3 of the RAG systematic review.
+      Every number below is computed live, in this page, over the case file to the right.
+    </div>
+    <div class="meta-row">
+      <div class="meta-item"><div class="k">Knowledge base</div><div class="v" id="m-corpus">—</div></div>
+      <div class="meta-item"><div class="k">Questions</div><div class="v" id="m-qa">—</div></div>
+      <div class="meta-item"><div class="k">Answers audited</div><div class="v" id="m-answers">—</div></div>
+      <div class="meta-item"><div class="k">Retriever</div><div class="v">TF&#8209;IDF cosine, k=3</div></div>
+    </div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi"><div class="label">Detection accuracy</div><div class="value" id="kpi-acc">—</div><div class="sub">claim level, supported vs. hallucinated</div></div>
+    <div class="kpi"><div class="label">F1 — hallucinated</div><div class="value" id="kpi-f1h">—</div><div class="sub">precision/recall balance</div></div>
+    <div class="kpi"><div class="label">Retrieval recall@3</div><div class="value" id="kpi-recall">—</div><div class="sub">gold passage in top&#8209;3</div></div>
+    <div class="kpi"><div class="label">Retrieval MRR</div><div class="value" id="kpi-mrr">—</div><div class="sub">mean reciprocal rank</div></div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>Detection performance</h2>
+      <span class="section-note">n = <span id="n-claims">—</span> claims across <span id="n-answers2">—</span> answers</span>
+    </div>
+    <div class="analysis-grid">
+      <div class="panel">
+        <h3>Confusion matrix — claim level</h3>
+        <table class="cm" id="cm-table"></table>
+      </div>
+      <div class="panel">
+        <h3>Mean faithfulness score by hallucination type</h3>
+        <div id="bar-chart"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Case ledger</h2>
+      <span class="section-note" id="ledger-count">— cases</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="ledger" id="ledger"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Cross-examination console</h2>
+      <span class="section-note">submit your own evidence</span>
+    </div>
+    <div class="console">
+      <div class="console-row">
+        <div>
+          <label class="field-label">Question on file</label>
+          <select id="q-select"></select>
+        </div>
+        <div>
+          <label class="field-label">Proposed answer</label>
+          <textarea id="answer-input" placeholder="Write an answer to test — try changing a number, adding an invented detail, or flipping a fact..."></textarea>
+        </div>
+        <button class="submit" id="submit-btn">Submit for review</button>
+      </div>
+      <div class="console-result" id="console-result"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Companion project to &ldquo;A Systematic Review of Key Retrieval-Augmented Generation (RAG) Systems&rdquo; — Section 6.3 &amp; 7.5.4</span>
+    <span>All computation runs client-side in this document.</span>
+  </footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   Embedded case data (astronomy & space-physics knowledge base, written
+   in original wording from public, verifiable facts)
+   ===================================================================== */
+const CORPUS = __CORPUS_JSON__;
+const QA = __QA_JSON__;
+const ANSWERS = __ANSWERS_JSON__;
+
+/* =====================================================================
+   Minimal TF-IDF + cosine similarity engine (mirrors src/retriever.py
+   and src/faithfulness.py from the Python project, reimplemented so the
+   whole audit can run live in the browser with zero dependencies)
+   ===================================================================== */
+const STOPWORDS = new Set(("a about above after again against all am an and any are aren't as at be because been "+
+"before being below between both but by can't cannot could couldn't did didn't do does doesn't doing don't down "+
+"during each few for from further had hadn't has hasn't have haven't having he he'd he'll he's her here here's hers "+
+"herself him himself his how how's i i'd i'll i'm i've if in into is isn't it it's its itself let's me more most "+
+"mustn't my myself no nor not of off on once only or other ought our ours ourselves out over own same shan't she "+
+"she'd she'll she's should shouldn't so some such than that that's the their theirs them themselves then there "+
+"there's these they they'd they'll they're they've this those through to too under until up very was wasn't we "+
+"we'd we'll we're we've were weren't what what's when when's where where's which while who who's whom why why's "+
+"with won't would wouldn't you you'd you'll you're you've your yours yourself yourselves").split(" "));
+
+function tokenize(text){
+  const words = text.toLowerCase().replace(/[^a-z0-9%.\s]/g," ").split(/\s+/).filter(Boolean)
+    .filter(w => !STOPWORDS.has(w) && w.length > 1);
+  const grams = [...words];
+  for(let i=0;i<words.length-1;i++) grams.push(words[i]+"_"+words[i+1]);
+  return grams;
+}
+
+// Fit a TF-IDF space over a list of texts; returns {vectors, vocab}
+function fitTfidf(texts){
+  const docsTokens = texts.map(tokenize);
+  const vocab = new Map(); // term -> index
+  docsTokens.forEach(toks => toks.forEach(t => { if(!vocab.has(t)) vocab.set(t, vocab.size); }));
+  const N = texts.length, V = vocab.size;
+  const df = new Array(V).fill(0);
+  docsTokens.forEach(toks => { new Set(toks).forEach(t => df[vocab.get(t)]++); });
+  const idf = df.map(d => Math.log((1+N)/(1+d)) + 1);
+
+  const vectors = docsTokens.map(toks => {
+    const tf = new Array(V).fill(0);
+    toks.forEach(t => tf[vocab.get(t)] += 1);
+    const vec = tf.map((v,i) => v * idf[i]);
+    const norm = Math.sqrt(vec.reduce((s,v)=>s+v*v,0)) || 1;
+    return vec.map(v => v / norm);
+  });
+  return {vectors, vocab, idf};
+}
+
+function cosine(a,b){
+  let s=0; for(let i=0;i<a.length;i++) s += a[i]*b[i];
+  return s;
+}
+
+function splitSentences(text){
+  return text.trim().split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(Boolean);
+}
+
+// ---- Retriever (fit once over the corpus) ----
+const corpusTexts = CORPUS.map(d => d.text);
+const {vectors: corpusVecs} = fitTfidf(corpusTexts);
+
+function retrieve(query, k=3){
+  // fit a fresh joint space of [query, ...corpus] so the query lands in the same vocab
+  const {vectors} = fitTfidf([query, ...corpusTexts]);
+  const qVec = vectors[0];
+  const scored = CORPUS.map((d,i) => ({doc_id:d.doc_id, text:d.text, score: cosine(qVec, vectors[i+1])}));
+  scored.sort((a,b)=>b.score-a.score);
+  return scored.slice(0,k);
+}
+
+function contextSentences(passages){
+  let out = [];
+  passages.forEach(p => out = out.concat(splitSentences(p.text)));
+  return out;
+}
+
+// ---- Faithfulness scorer ----
+const NUMBER_RE = /\d+(?:,\d{3})*(?:\.\d+)?/g;
+const NEGATION_WORDS = ["not","no","never","none","cancelled","banned","unable","without","no longer"];
+const SUPERLATIVE_PAIRS = [["largest","smallest"],["smallest","largest"],["tallest","shortest"],
+  ["shortest","tallest"],["warmest","coolest"],["primary","banned"],
+  ["fastest","slowest"],["slowest","fastest"],["nearest","farthest"],["farthest","nearest"],
+  ["closest","farthest"],["first","last"],["last","first"],["highest","lowest"],["lowest","highest"]];
+const SUPPORT_THRESHOLD = 0.28;
+
+function numbersIn(text){
+  const m = text.replace(/,/g,"").match(NUMBER_RE) || [];
+  return new Set(m);
+}
+function setsEqual(a,b){ if(a.size!==b.size) return false; for(const x of a) if(!b.has(x)) return false; return true; }
+
+function hasPolarityFlip(claim, evidence){
+  const c = claim.toLowerCase(), e = evidence.toLowerCase();
+  for(const [w,o] of SUPERLATIVE_PAIRS){
+    if(e.includes(w) && c.includes(o)) return true;
+    if(e.includes(o) && c.includes(w)) return true;
+  }
+  const negC = NEGATION_WORDS.some(w=>c.includes(w));
+  const negE = NEGATION_WORDS.some(w=>e.includes(w));
+  return negC !== negE;
+}
+
+function scoreClaims(claims, contextSents){
+  if(contextSents.length===0){
+    return claims.map(c => ({claim:c, label:"unsupported", evidence:"", similarity:0}));
+  }
+  const {vectors} = fitTfidf([...claims, ...contextSents]);
+  const claimVecs = vectors.slice(0, claims.length);
+  const ctxVecs = vectors.slice(claims.length);
+
+  return claims.map((claim, i) => {
+    let best = -1, bestIdx = 0;
+    ctxVecs.forEach((v,j)=>{ const s = cosine(claimVecs[i], v); if(s>best){best=s; bestIdx=j;} });
+    const evidence = contextSents[bestIdx];
+    let label;
+    if(best < SUPPORT_THRESHOLD){
+      label = "unsupported";
+    } else {
+      const cn = numbersIn(claim), en = numbersIn(evidence);
+      const numericConflict = cn.size>0 && en.size>0 && !setsEqual(cn,en);
+      const polarityConflict = hasPolarityFlip(claim, evidence);
+      label = (numericConflict || polarityConflict) ? "contradicted" : "supported";
+    }
+    return {claim, label, evidence, similarity: best};
+  });
+}
+
+/* =====================================================================
+   Run the full audit over the embedded case file (this is the
+   "multiple samples" batch run — all answers in the case file, scored live)
+   ===================================================================== */
+function runFullAudit(){
+  const claimRows = [];
+  const answerRows = [];
+
+  ANSWERS.forEach(ans => {
+    const passages = retrieve(ans.question, 3);
+    const ctx = contextSentences(passages);
+    const claimTexts = ans.claims.map(c => c.text);
+    const verdicts = scoreClaims(claimTexts, ctx);
+    verdicts.forEach((v,i) => claimRows.push({
+      answer_id: ans.answer_id, qid: ans.qid, answer_type: ans.answer_type,
+      claim: v.claim, gold: ans.claims[i].gold_label, pred: v.label,
+      similarity: v.similarity, evidence: v.evidence
+    }));
+    const supported = verdicts.filter(v=>v.label==="supported").length;
+    answerRows.push({
+      answer_id: ans.answer_id, qid: ans.qid, question: ans.question,
+      answer_type: ans.answer_type, answer_text: ans.answer_text,
+      faithfulness: supported/verdicts.length,
+      verdicts, claims: ans.claims,
+      allCorrect: verdicts.every((v,i)=> (v.label==="supported") === (ans.claims[i].gold_label==="supported") )
+    });
+  });
+
+  // Retrieval Recall@3 / MRR
+  let recallHits=0, rrs=[];
+  QA.forEach(item=>{
+    const passages = retrieve(item.question, 3);
+    const ids = passages.map(p=>p.doc_id);
+    const idx = ids.indexOf(item.gold_doc_id);
+    if(idx>=0){ recallHits++; rrs.push(1/(idx+1)); } else rrs.push(0);
+  });
+  const recallAt3 = recallHits/QA.length;
+  const mrr = rrs.reduce((a,b)=>a+b,0)/rrs.length;
+
+  return {claimRows, answerRows, recallAt3, mrr};
+}
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+function binLabel(l){ return (l==="unsupported"||l==="contradicted") ? "hallucinated" : "supported"; }
+
+function renderKpis(result){
+  const {claimRows, recallAt3, mrr} = result;
+  let tp=0, fp=0, fn=0, tn=0;
+  claimRows.forEach(r=>{
+    const g = binLabel(r.gold), p = binLabel(r.pred);
+    if(g==="hallucinated" && p==="hallucinated") tp++;
+    else if(g==="supported" && p==="hallucinated") fp++;
+    else if(g==="hallucinated" && p==="supported") fn++;
+    else tn++;
+  });
+  const acc = (tp+tn)/(tp+tn+fp+fn);
+  const prec = tp/(tp+fp||1), rec = tp/(tp+fn||1);
+  const f1 = 2*prec*rec/((prec+rec)||1);
+
+  document.getElementById('kpi-acc').textContent = (acc*100).toFixed(1)+"%";
+  document.getElementById('kpi-f1h').textContent = f1.toFixed(2);
+  document.getElementById('kpi-recall').textContent = (recallAt3*100).toFixed(0)+"%";
+  document.getElementById('kpi-mrr').textContent = mrr.toFixed(2);
+  document.getElementById('m-corpus').textContent = CORPUS.length + " documents";
+  document.getElementById('m-qa').textContent = QA.length + " questions";
+  document.getElementById('m-answers').textContent = ANSWERS.length + " generated answers";
+  document.getElementById('n-claims').textContent = claimRows.length;
+  document.getElementById('n-answers2').textContent = result.answerRows.length;
+}
+
+function renderConfusionMatrix(claimRows){
+  const labels = ["supported","unsupported","contradicted"];
+  const cm = labels.map(()=>labels.map(()=>0));
+  claimRows.forEach(r=>{
+    const gi = labels.indexOf(r.gold), pi = labels.indexOf(r.pred);
+    if(gi>=0 && pi>=0) cm[gi][pi]++;
+  });
+  const tbl = document.getElementById('cm-table');
+  let html = '<tr><th></th>' + labels.map(l=>`<th>${l}</th>`).join('') + '</tr>';
+  labels.forEach((rowLabel,i)=>{
+    html += `<tr><th>${rowLabel}</th>` + labels.map((_,j)=>{
+      const cls = i===j ? 'diag' : '';
+      return `<td class="${cls}">${cm[i][j]}</td>`;
+    }).join('') + '</tr>';
+  });
+  tbl.innerHTML = html;
+}
+
+function renderBarChart(answerRows){
+  const types = ["grounded","numeric","fabrication","contradiction"];
+  const colors = {grounded:"var(--green)", numeric:"var(--red)", fabrication:"var(--amber)", contradiction:"var(--red)"};
+  const container = document.getElementById('bar-chart');
+  container.innerHTML = "";
+  types.forEach(t=>{
+    const rows = answerRows.filter(a=>a.answer_type===t);
+    const avg = rows.reduce((s,a)=>s+a.faithfulness,0)/rows.length;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `<div class="lbl">${t}</div><div class="bar-track"><div class="bar-fill" style="width:0%; background:${colors[t]}"></div></div><div class="val">${avg.toFixed(2)}</div>`;
+    container.appendChild(row);
+    requestAnimationFrame(()=>{ setTimeout(()=>{ row.querySelector('.bar-fill').style.width = (avg*100)+"%"; }, 60); });
+  });
+}
+
+let CURRENT_FILTER = "all";
+function renderLedger(answerRows){
+  const chips = document.getElementById('chips');
+  const types = ["all","grounded","numeric","fabrication","contradiction"];
+  chips.innerHTML = types.map(t=>`<div class="chip ${t===CURRENT_FILTER?'active':''}" data-type="${t}">${t}</div>`).join('');
+  chips.querySelectorAll('.chip').forEach(c=>{
+    c.onclick = ()=>{ CURRENT_FILTER = c.dataset.type; renderLedger(answerRows); };
+  });
+
+  const filtered = CURRENT_FILTER==="all" ? answerRows : answerRows.filter(a=>a.answer_type===CURRENT_FILTER);
+  document.getElementById('ledger-count').textContent = filtered.length + " cases shown";
+
+  const ledger = document.getElementById('ledger');
+  ledger.innerHTML = "";
+  filtered.forEach(a=>{
+    const row = document.createElement('div');
+    row.className = 'case-row';
+    row.innerHTML = `
+      <div class="cid">${a.answer_id.toUpperCase()}</div>
+      <div class="q">${a.question}</div>
+      <div class="type-tag">${a.answer_type}</div>
+      <div class="result-tag ${a.allCorrect?'correct':'wrong'}">${a.allCorrect?'as expected':'flagged'}</div>
+      <div class="chevron">&#9656;</div>
+    `;
+    const detail = document.createElement('div');
+    detail.className = 'case-detail';
+    detail.innerHTML = `<div class="answer-text">&ldquo;${a.answer_text}&rdquo;</div>` +
+      a.verdicts.map(v => `
+        <div class="claim-card">
+          <span class="stamp ${v.label}">${v.label}</span>
+          <div class="claim-text">${v.claim}</div>
+          <div class="evidence">best-matching evidence (sim ${v.similarity.toFixed(2)}): <b>${v.evidence || '— none above threshold —'}</b></div>
+        </div>
+      `).join('');
+
+    row.onclick = ()=>{
+      const isOpen = detail.classList.contains('show');
+      row.classList.toggle('open', !isOpen);
+      detail.classList.toggle('show', !isOpen);
+    };
+    ledger.appendChild(row);
+    ledger.appendChild(detail);
+  });
+}
+
+function populateQuestionSelect(){
+  const sel = document.getElementById('q-select');
+  sel.innerHTML = QA.map(q=>`<option value="${q.qid}">${q.question}</option>`).join('');
+  updateContextPreview();
+  sel.onchange = updateContextPreview;
+}
+
+function updateContextPreview(){
+  const sel = document.getElementById('q-select');
+  const q = QA.find(x=>x.qid===sel.value);
+  const passages = retrieve(q.question, 3);
+  let box = document.getElementById('ctx-preview');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'ctx-preview';
+    box.className = 'context-preview';
+    sel.insertAdjacentElement('afterend', box);
+  }
+  box.innerHTML = "Retrieved context: " + passages.map(p=>`[${p.doc_id}] ${p.text}`).join(' &nbsp;·&nbsp; ');
+}
+
+function runConsole(){
+  const sel = document.getElementById('q-select');
+  const q = QA.find(x=>x.qid===sel.value);
+  const answerText = document.getElementById('answer-input').value.trim();
+  const resultBox = document.getElementById('console-result');
+  if(!answerText){ resultBox.classList.remove('show'); return; }
+
+  const passages = retrieve(q.question, 3);
+  const ctx = contextSentences(passages);
+  const claims = splitSentences(answerText);
+  const verdicts = scoreClaims(claims, ctx);
+  const score = verdicts.filter(v=>v.label==="supported").length / verdicts.length;
+
+  resultBox.innerHTML = `<div class="verdict-line">Faithfulness score: <b style="color:var(--ink); font-family:'Fraunces',serif; font-size:16px;">${score.toFixed(2)}</b> &nbsp;·&nbsp; retrieved from [${passages.map(p=>p.doc_id).join(', ')}]</div>` +
+    verdicts.map(v => `
+      <div class="claim-card">
+        <span class="stamp ${v.label}">${v.label}</span>
+        <div class="claim-text">${v.claim}</div>
+        <div class="evidence">best-matching evidence (sim ${v.similarity.toFixed(2)}): <b>${v.evidence || '— none above threshold —'}</b></div>
+      </div>
+    `).join('');
+  resultBox.classList.add('show');
+}
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+document.getElementById('today').textContent = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+const AUDIT = runFullAudit();
+renderKpis(AUDIT);
+renderConfusionMatrix(AUDIT.claimRows);
+renderBarChart(AUDIT.answerRows);
+renderLedger(AUDIT.answerRows);
+populateQuestionSelect();
+document.getElementById('submit-btn').onclick = runConsole;
+</script>
+</body>
+</html>
