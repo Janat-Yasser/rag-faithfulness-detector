@@ -72,3 +72,13 @@ def test_browser_app_agrees_with_python():
         js = page.evaluate("cases => cases.map(([q, c]) => scoreClaims([c], contextSentences(retrieve(q, 3)))[0].label)", cases)
         browser.close()
     assert js == py
+
+
+def test_built_app_is_up_to_date_with_template_and_data():
+    import build_app
+    with open(os.path.join(ROOT, "faithfulness_audit_app.html"), encoding="utf-8") as f:
+        current = f.read()
+    build_app.build()
+    with open(os.path.join(ROOT, "faithfulness_audit_app.html"), encoding="utf-8") as f:
+        rebuilt = f.read()
+    assert "__CORPUS_JSON__" not in rebuilt and current == rebuilt, "run `python build_app.py`"

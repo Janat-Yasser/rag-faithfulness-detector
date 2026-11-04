@@ -1,414 +1,247 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Faithfulness Audit — RAG Case File</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faithfulness check: does the answer say what the sources say?</title>
+<meta name="description" content="A claim-by-claim fact-checker for retrieval-augmented generation, running entirely in the browser.">
 <style>
-  :root{
-    --paper:#EDEBE3;
-    --paper-raised:#F7F5EF;
-    --ink:#1E2430;
-    --ink-soft:#5B5E66;
-    --rule:#CFCBBD;
-    --rule-strong:#a9a493;
-    --green:#2F6E4F;
-    --green-bg:#E4EEE7;
-    --red:#8C2F2B;
-    --red-bg:#F2E4E2;
-    --amber:#9A6B1E;
-    --amber-bg:#F1E7D3;
-    --indigo:#333F6B;
-    --indigo-bg:#E4E5EF;
-    --radius:2px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Inter',-apple-system,sans-serif;
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-  }
-  ::selection{background:var(--indigo); color:#fff;}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 90px;}
-  a{color:inherit;}
+@font-face { font-family: "Source Serif 4"; font-weight: 400; font-display: swap; src: url(fonts/source-serif-4-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 400; font-style: italic; font-display: swap; src: url(fonts/source-serif-4-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 600; font-display: swap; src: url(fonts/source-serif-4-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-weight: 400; font-display: swap; src: url(fonts/public-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-weight: 500; font-display: swap; src: url(fonts/public-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-weight: 600; font-display: swap; src: url(fonts/public-sans-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-weight: 700; font-display: swap; src: url(fonts/public-sans-latin-700-normal.woff2) format("woff2"); }
 
-  /* ---------- Header / case block ---------- */
-  .case-header{
-    padding:46px 0 24px;
-    border-bottom:2px solid var(--ink);
-  }
-  .eyebrow{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:14px;
-  }
-  h1.title{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:44px;
-    line-height:1.05;
-    margin:0 0 10px;
-    letter-spacing:-0.01em;
-  }
-  h1.title em{font-style:italic; font-weight:500; color:var(--indigo);}
-  .subtitle{
-    max-width:640px;
-    color:var(--ink-soft);
-    font-size:15.5px;
-  }
-  .meta-row{
-    display:flex;
-    gap:36px;
-    margin-top:22px;
-    flex-wrap:wrap;
-  }
-  .meta-item .k{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);}
-  .meta-item .v{font-size:14.5px;margin-top:2px;}
+/* A fact-checker's proof: black text on white, marked up in coloured pencil.
+   Red pencil = contradicts a source, blue pencil = in no source, green tick = backed. */
+:root {
+  --paper: #FFFFFF;
+  --desk: #F4F4F1;
+  --ink: #1A1C20;
+  --ink-2: #4E525B;
+  --ink-3: #8A8E96;
+  --rule: #E2E2DD;
+  --red: #CF2A2A;
+  --blue: #2361C6;
+  --green: #1C8A4C;
+  --marker: #FFF0A0;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+a { color: var(--blue); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button, select, textarea { font: inherit; color: inherit; }
 
-  /* ---------- KPI strip ---------- */
-  .kpi-strip{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    border:1px solid var(--rule-strong);
-    margin-top:34px;
-    background:var(--paper-raised);
-  }
-  .kpi{
-    padding:20px 20px;
-    border-right:1px solid var(--rule);
-  }
-  .kpi:last-child{border-right:none;}
-  .kpi .label{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    letter-spacing:.09em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-  }
-  .kpi .value{
-    font-family:'Fraunces',serif;
-    font-size:34px;
-    font-weight:600;
-    margin-top:6px;
-  }
-  .kpi .sub{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+/* masthead */
+.mast { padding: 48px 0 28px; }
+.kicker { font-weight: 600; color: var(--ink-2); font-size: .95rem; }
+.mast h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 4.6vw, 3.5rem); line-height: 1.08; letter-spacing: -.012em; max-width: 20ch; margin-top: 6px; }
+.lede { font-family: var(--serif); font-size: 1.2rem; color: var(--ink-2); max-width: 60ch; margin-top: 14px; line-height: 1.5; }
 
-  /* ---------- Section headings ---------- */
-  section{margin-top:56px;}
-  .section-head{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    border-bottom:1px solid var(--ink);
-    padding-bottom:8px;
-    margin-bottom:22px;
-  }
-  .section-head h2{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:22px;
-    margin:0;
-  }
-  .section-note{font-size:12.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+/* the desk: checker + sources */
+.desk { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.desk-left { padding: 22px 32px 30px 0; border-right: 1px solid var(--rule); }
+.desk-right { padding: 22px 0 30px 28px; }
+.field { display: block; font-weight: 600; font-size: .9rem; margin: 0 0 6px; }
+select#q-select { width: 100%; padding: 9px 10px; border: 1px solid #C9C9C3; border-radius: 4px; background: var(--paper); font-size: .95rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 18px; }
+.presets span { font-size: .85rem; color: var(--ink-3); margin-right: 4px; align-self: center; }
+.preset { padding: 5px 11px; border: 1px solid #C9C9C3; border-radius: 99px; background: var(--paper); font-size: .85rem; cursor: pointer; }
+.preset:hover { border-color: var(--ink); }
+.preset[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+textarea#answer-input { width: 100%; min-height: 92px; resize: vertical; padding: 12px 14px; border: 1px solid #C9C9C3; border-radius: 4px; font-family: var(--serif); font-size: 1.05rem; line-height: 1.5; background: #FCFCFA; }
 
-  /* ---------- Analysis grid: confusion matrix + bars ---------- */
-  .analysis-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:32px;
-  }
-  .panel{
-    border:1px solid var(--rule-strong);
-    background:var(--paper-raised);
-    padding:22px 22px 18px;
-  }
-  .panel h3{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:.09em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    margin:0 0 16px;
-  }
-  table.cm{width:100%;border-collapse:collapse;font-size:13px;}
-  table.cm th, table.cm td{
-    text-align:center;padding:9px 6px;border:1px solid var(--rule);
-  }
-  table.cm th{
-    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;
-    color:var(--ink-soft); font-weight:500;
-  }
-  table.cm td.diag{font-weight:600;}
-  table.cm td{font-family:'IBM Plex Mono',monospace;}
+.proof-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 24px 0 8px; }
+.proof-head h2 { font-family: var(--serif); font-weight: 600; font-size: 1.35rem; }
+.tally { font-size: .95rem; color: var(--ink-2); }
+.tally b { color: var(--ink); }
+.proof { font-family: var(--serif); font-size: 1.32rem; line-height: 2.25; padding: 6px 0 4px; }
+.claim { border-radius: 2px; transition: background .15s; cursor: default; }
+.claim.supported { text-decoration: underline; text-decoration-color: var(--green); text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.claim.unsupported { text-decoration: underline wavy; text-decoration-color: var(--blue); text-decoration-thickness: 1.5px; text-underline-offset: 7px; }
+.claim.contradicted { text-decoration: none; }
+.claim.lit { background: var(--marker); }
+.ref { font-family: var(--sans); font-size: .62em; font-weight: 700; vertical-align: .55em; margin: 0 2px 0 1px; padding: 0 4px; border-radius: 3px; color: #fff; }
+.ref.supported { background: var(--green); }
+.ref.unsupported { background: var(--blue); }
+.ref.contradicted { background: var(--red); }
+/* a wrong word: struck through in red, the source's word written above it */
+.strike { position: relative; text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 2px; color: var(--ink); }
+.caret { position: absolute; left: 50%; bottom: 1.05em; transform: translateX(-50%) rotate(-2deg); white-space: nowrap; font-style: italic; font-size: .82em; color: var(--red); line-height: 1; pointer-events: none; }
+.caret::after { content: ""; position: absolute; left: 50%; bottom: -.62em; width: 8px; height: 8px; border-left: 1.5px solid var(--red); border-top: 1.5px solid var(--red); transform: translateX(-50%) rotate(45deg); }
+.flip { text-decoration: underline; text-decoration-color: var(--red); text-decoration-thickness: 2px; text-underline-offset: 6px; }
 
-  .bar-row{display:flex;align-items:center;gap:10px;margin:14px 0;}
-  .bar-row .lbl{width:110px;font-size:12.5px;flex-shrink:0;}
-  .bar-track{flex:1;height:16px;background:#e2ded0;position:relative;}
-  .bar-fill{height:100%;transition:width .9s cubic-bezier(.2,.8,.2,1);}
-  .bar-row .val{width:42px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;}
+.notes { list-style: none; margin-top: 14px; border-top: 1px solid var(--rule); }
+.notes li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); font-size: .95rem; cursor: default; }
+.notes li.lit { background: linear-gradient(90deg, var(--marker), transparent 70%); }
+.notes .n { font-weight: 700; font-size: .8rem; color: #fff; border-radius: 3px; height: 20px; width: 22px; display: grid; place-items: center; margin-top: 2px; }
+.notes .n.supported { background: var(--green); } .notes .n.unsupported { background: var(--blue); } .notes .n.contradicted { background: var(--red); }
+.notes strong { font-weight: 600; }
+.notes .why { color: var(--ink-2); }
+.notes .sim { color: var(--ink-3); font-size: .85rem; }
+.empty { color: var(--ink-3); font-family: var(--serif); font-style: italic; font-size: 1.1rem; }
 
-  /* ---------- Filter chips ---------- */
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
-  .chip{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    letter-spacing:.03em;
-    padding:6px 12px;
-    border:1px solid var(--rule-strong);
-    background:var(--paper-raised);
-    cursor:pointer;
-    user-select:none;
-    color:var(--ink-soft);
-  }
-  .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.desk-right h2 { font-family: var(--serif); font-weight: 600; font-size: 1.35rem; margin-bottom: 4px; }
+.desk-right > p { font-size: .9rem; color: var(--ink-2); margin-bottom: 14px; }
+.sources { list-style: none; counter-reset: s; }
+.source { padding: 12px 14px; background: var(--desk); border-radius: 4px; margin-bottom: 10px; font-family: var(--serif); font-size: 1.02rem; line-height: 1.6; }
+.source-meta { display: flex; justify-content: space-between; font-family: var(--sans); font-size: .78rem; color: var(--ink-3); margin-bottom: 4px; }
+.sent { border-radius: 2px; transition: background .15s, box-shadow .15s; }
+.sent.used { box-shadow: inset 0 -2px 0 #D9D9D2; }
+.sent.lit { background: var(--marker); box-shadow: none; }
+.sent u { text-decoration: none; font-weight: 600; }
+.key { margin-top: 18px; font-size: .88rem; color: var(--ink-2); display: grid; gap: 8px; }
+.key-row { display: flex; gap: 10px; align-items: baseline; }
+.key-row span:first-child { font-family: var(--serif); font-size: 1.05rem; min-width: 100px; }
+.k-sup { text-decoration: underline; text-decoration-color: var(--green); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.k-uns { text-decoration: underline wavy; text-decoration-color: var(--blue); text-underline-offset: 5px; }
+.k-con { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 2px; }
 
-  /* ---------- Case ledger ---------- */
-  .ledger{border-top:1px solid var(--ink);}
-  .case-row{
-    border-bottom:1px solid var(--rule);
-    padding:13px 4px;
-    display:grid;
-    grid-template-columns:70px 1fr 140px 100px 22px;
-    align-items:center;
-    gap:14px;
-    cursor:pointer;
-  }
-  .case-row:hover{background:rgba(0,0,0,0.02);}
-  .case-row .cid{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);}
-  .case-row .q{font-size:13.5px;}
-  .case-row .type-tag{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
-  }
-  .result-tag{
-    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
-    text-align:center;padding:4px 0;border:1px solid;
-  }
-  .result-tag.correct{color:var(--green);border-color:var(--green);}
-  .result-tag.wrong{color:var(--red);border-color:var(--red);}
-  .chevron{transition:transform .2s ease;color:var(--ink-soft);font-size:12px;}
-  .case-row.open .chevron{transform:rotate(90deg);}
+/* results */
+section.results, section.ledger { padding: 48px 0 8px; }
+.sec-title { font-family: var(--serif); font-weight: 600; font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -.01em; }
+.sec-lede { color: var(--ink-2); max-width: 66ch; margin: 6px 0 24px; }
+.figures { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 2px solid var(--ink); }
+.figure { padding: 18px 24px 22px 0; }
+.figure + .figure { padding-left: 24px; border-left: 1px solid var(--rule); }
+.figure .big { font-family: var(--serif); font-weight: 600; font-size: 3.4rem; line-height: 1; letter-spacing: -.02em; }
+.figure .big.honest { color: var(--ink); }
+.figure .big.easy { color: var(--ink-3); }
+.figure h3 { font-size: 1rem; font-weight: 600; margin: 10px 0 4px; }
+.figure p { font-size: .93rem; color: var(--ink-2); }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 40px; margin-top: 30px; }
+.split h3 { font-family: var(--serif); font-weight: 600; font-size: 1.25rem; margin-bottom: 4px; }
+.split .sub { font-size: .9rem; color: var(--ink-2); margin-bottom: 12px; }
+table.cm { border-collapse: collapse; font-size: .95rem; }
+.cm th, .cm td { padding: 9px 14px; text-align: right; border-bottom: 1px solid var(--rule); }
+.cm th { font-weight: 500; color: var(--ink-2); font-size: .85rem; }
+.cm thead th { border-bottom: 1.5px solid var(--ink); }
+.cm td { font-variant-numeric: tabular-nums; }
+.cm td.diag { font-weight: 700; }
+.cm td.off { color: var(--red); font-weight: 600; }
+.fails { list-style: none; border-top: 1.5px solid var(--ink); }
+.fails li { border-bottom: 1px solid var(--rule); }
+.fails button { all: unset; display: grid; grid-template-columns: 1fr auto; gap: 14px; padding: 10px 0; cursor: pointer; width: 100%; }
+.fails button:hover .ft { text-decoration: underline; }
+.fails button:focus-visible { outline: 2px solid var(--blue); }
+.ft { font-family: var(--serif); font-size: 1.02rem; }
+.fk { font-size: .8rem; color: var(--ink-3); white-space: nowrap; }
+.fk b { color: var(--red); font-weight: 600; }
 
-  .case-detail{
-    display:none;
-    padding:6px 4px 24px 84px;
-    border-bottom:1px solid var(--rule);
-  }
-  .case-detail.show{display:block;}
-  .answer-text{
-    font-family:'Fraunces',serif;
-    font-style:italic;
-    font-size:15px;
-    color:var(--ink);
-    margin-bottom:14px;
-    max-width:680px;
-  }
-  .claim-card{
-    border-left:3px solid var(--rule-strong);
-    padding:8px 0 8px 14px;
-    margin-bottom:10px;
-    max-width:680px;
-  }
-  .claim-card .claim-text{font-size:13.5px;margin-bottom:5px;}
-  .claim-card .evidence{
-    font-size:12px;color:var(--ink-soft);
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .claim-card .evidence b{color:var(--ink);font-weight:500;}
+/* ledger */
+.grid-wrap { overflow-x: auto; }
+table.grid { border-collapse: collapse; width: 100%; font-size: .92rem; }
+.grid th { text-align: center; font-weight: 600; font-size: .82rem; color: var(--ink-2); padding: 8px 6px; border-bottom: 1.5px solid var(--ink); }
+.grid th:first-child { text-align: left; }
+.grid td { border-bottom: 1px solid var(--rule); padding: 3px 6px; text-align: center; }
+.grid td:first-child { text-align: left; font-family: var(--serif); padding-right: 20px; }
+.cell { width: 34px; height: 28px; border: 1px solid transparent; border-radius: 4px; background: none; cursor: pointer; font-weight: 700; font-size: 1rem; }
+.cell.ok { color: var(--green); }
+.cell.miss { color: #fff; background: var(--red); }
+.cell:hover { border-color: var(--ink); }
 
-  /* ---------- Stamp badges (signature element) ---------- */
-  .stamp{
-    display:inline-block;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    letter-spacing:.09em;
-    padding:2px 8px;
-    border:1.5px solid;
-    border-radius:3px;
-    transform:rotate(-3deg);
-    text-transform:uppercase;
-    margin-bottom:6px;
-    animation:stampIn .32s cubic-bezier(.2,1.4,.6,1);
-  }
-  @keyframes stampIn{
-    0%{opacity:0; transform:rotate(-3deg) scale(2.1); filter:blur(1px);}
-    60%{opacity:1;}
-    100%{opacity:1; transform:rotate(-3deg) scale(1);}
-  }
-  .stamp.supported{color:var(--green);border-color:var(--green);background:var(--green-bg);}
-  .stamp.unsupported{color:var(--amber);border-color:var(--amber);background:var(--amber-bg);}
-  .stamp.contradicted{color:var(--red);border-color:var(--red);background:var(--red-bg);}
+footer { margin-top: 56px; padding: 22px 0 40px; border-top: 1px solid var(--rule); font-size: .85rem; color: var(--ink-3); }
+footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 
-  /* ---------- Console (playground) ---------- */
-  .console{
-    border:1px solid var(--rule-strong);
-    background:var(--paper-raised);
-    padding:26px;
-  }
-  .console-row{display:grid;grid-template-columns:1fr;gap:16px;}
-  label.field-label{
-    display:block;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:6px;
-  }
-  select, textarea{
-    width:100%;
-    font-family:'Inter',sans-serif;
-    font-size:14px;
-    padding:10px 12px;
-    border:1px solid var(--rule-strong);
-    background:#fff;
-    color:var(--ink);
-  }
-  textarea{min-height:78px;resize:vertical;}
-  .context-preview{
-    margin-top:4px;
-    font-size:12px;
-    color:var(--ink-soft);
-    font-family:'IBM Plex Mono',monospace;
-    line-height:1.6;
-  }
-  button.submit{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-    background:var(--ink);color:var(--paper);
-    border:none;padding:12px 22px;
-    cursor:pointer;
-    align-self:start;
-    margin-top:4px;
-  }
-  button.submit:hover{background:var(--indigo);}
-  .console-result{margin-top:22px; border-top:1px dashed var(--rule-strong); padding-top:18px; display:none;}
-  .console-result.show{display:block;}
-  .verdict-line{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); margin-top:14px;}
-
-  footer{
-    margin-top:70px;
-    padding-top:20px;
-    border-top:1px solid var(--rule-strong);
-    font-size:12px;
-    color:var(--ink-soft);
-    display:flex;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:8px;
-  }
-
-  @media (max-width:760px){
-    .kpi-strip{grid-template-columns:1fr 1fr;}
-    .kpi{border-bottom:1px solid var(--rule);}
-    .analysis-grid{grid-template-columns:1fr;}
-    .case-row{grid-template-columns:50px 1fr 90px 20px; grid-template-areas:none;}
-    .case-row .type-tag{display:none;}
-    .case-detail{padding-left:20px;}
-    h1.title{font-size:32px;}
-  }
+@media (max-width: 860px) {
+  .wrap { padding: 0 16px; }
+  .desk { grid-template-columns: 1fr; }
+  .desk-left { padding-right: 0; border-right: none; border-bottom: 1px solid var(--rule); }
+  .desk-right { padding-left: 0; }
+  .figures, .split { grid-template-columns: 1fr; }
+  .figure + .figure { padding-left: 0; border-left: none; border-top: 1px solid var(--rule); }
+  .proof { font-size: 1.15rem; }
+  .cm th, .cm td { padding: 8px 8px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div class="case-header">
-    <div class="eyebrow">
-      <span>Case No. RAG&#8209;FD&#8209;2026&#8209;014</span>
-      <span id="today"></span>
-    </div>
-    <h1 class="title">Faithfulness <em>Audit</em></h1>
-    <div class="subtitle">
-      A claim-by-claim cross-examination of generated answers to astronomy and space-physics
-      questions, checked against retrieved evidence — an offline, inspectable stand-in for the
-      RAGAS entailment check described in Section 6.3 of the RAG systematic review.
-      Every number below is computed live, in this page, over the case file to the right.
-    </div>
-    <div class="meta-row">
-      <div class="meta-item"><div class="k">Knowledge base</div><div class="v" id="m-corpus">—</div></div>
-      <div class="meta-item"><div class="k">Questions</div><div class="v" id="m-qa">—</div></div>
-      <div class="meta-item"><div class="k">Answers audited</div><div class="v" id="m-answers">—</div></div>
-      <div class="meta-item"><div class="k">Retriever</div><div class="v">TF&#8209;IDF cosine, k=3</div></div>
-    </div>
+<header class="mast">
+  <div class="wrap">
+    <p class="kicker">RAG faithfulness audit</p>
+    <h1>Does the answer say what the sources say?</h1>
+    <p class="lede">A retriever pulls passages for a question; a model writes an answer. This page checks that answer one claim at a time and marks it up the way a fact-checker would: backed by a source, found in no source, or contradicting one. Everything runs here, in your browser.</p>
+  </div>
+</header>
+
+<main>
+<section class="wrap desk" aria-label="Checker">
+  <div class="desk-left">
+    <label class="field" for="q-select">Question</label>
+    <select id="q-select"></select>
+    <div class="presets" id="presets" role="group" aria-label="Load an example answer"></div>
+    <label class="field" for="answer-input">Answer to check <span style="font-weight:400;color:var(--ink-3)">(edit it: the marks update as you type)</span></label>
+    <textarea id="answer-input" spellcheck="false"></textarea>
+
+    <div class="proof-head"><h2>Marked up</h2><p class="tally" id="tally"></p></div>
+    <div class="proof" id="proof" aria-live="polite"></div>
+    <ol class="notes" id="notes"></ol>
   </div>
 
-  <div class="kpi-strip">
-    <div class="kpi"><div class="label">Detection accuracy</div><div class="value" id="kpi-acc">—</div><div class="sub">claim level, supported vs. hallucinated</div></div>
-    <div class="kpi"><div class="label">F1 — hallucinated</div><div class="value" id="kpi-f1h">—</div><div class="sub">precision/recall balance</div></div>
-    <div class="kpi"><div class="label">Retrieval recall@3</div><div class="value" id="kpi-recall">—</div><div class="sub">gold passage in top&#8209;3</div></div>
-    <div class="kpi"><div class="label">Retrieval MRR</div><div class="value" id="kpi-mrr">—</div><div class="sub">mean reciprocal rank</div></div>
+  <aside class="desk-right">
+    <h2>What the retriever found</h2>
+    <p>The top three passages for this question. Hover a claim to see which sentence it was checked against.</p>
+    <ol class="sources" id="sources"></ol>
+    <div class="key">
+      <div class="key-row"><span class="k-sup">underlined</span><span>backed by a source sentence</span></div>
+      <div class="key-row"><span class="k-uns">wavy</span><span>not in any retrieved source</span></div>
+      <div class="key-row"><span class="k-con">struck</span><span>contradicts a source; the source's version is written above</span></div>
+    </div>
   </div>
+</section>
 
-  <section>
-    <div class="section-head">
-      <h2>Detection performance</h2>
-      <span class="section-note">n = <span id="n-claims">—</span> claims across <span id="n-answers2">—</span> answers</span>
+<section class="wrap results">
+  <h2 class="sec-title">How often is it right?</h2>
+  <p class="sec-lede">Two numbers, because one of them is too easy. The built-in benchmark mostly copies its true claims straight from the sources, so matching words is enough. The held-out set was written to be hard, before the current rules existed, and was never used to tune them.</p>
+  <div class="figures">
+    <div class="figure"><div class="big honest" id="acc-b"></div><h3>Held-out set</h3><p id="acc-b-note"></p></div>
+    <div class="figure"><div class="big easy" id="acc-bench"></div><h3>Built-in benchmark</h3><p id="acc-bench-note"></p></div>
+    <div class="figure"><div class="big easy" id="recall"></div><h3>Retrieval, recall at 3</h3><p id="recall-note"></p></div>
+  </div>
+  <div class="split">
+    <div>
+      <h3>Benchmark, claim by claim</h3>
+      <p class="sub">Rows are the truth, columns are what the checker said.</p>
+      <div class="grid-wrap"><table class="cm" id="cm"></table></div>
     </div>
-    <div class="analysis-grid">
-      <div class="panel">
-        <h3>Confusion matrix — claim level</h3>
-        <table class="cm" id="cm-table"></table>
-      </div>
-      <div class="panel">
-        <h3>Mean faithfulness score by hallucination type</h3>
-        <div id="bar-chart"></div>
-      </div>
+    <div>
+      <h3>Where it gets the held-out set wrong</h3>
+      <p class="sub">Every miss, so you can see the failure modes. Click one to open it in the checker.</p>
+      <ul class="fails" id="fails"></ul>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <div class="section-head">
-      <h2>Case ledger</h2>
-      <span class="section-note" id="ledger-count">— cases</span>
-    </div>
-    <div class="chips" id="chips"></div>
-    <div class="ledger" id="ledger"></div>
-  </section>
+<section class="wrap ledger">
+  <h2 class="sec-title">All 100 benchmark answers</h2>
+  <p class="sec-lede">Four answers per question: one faithful, and three with a planted problem. A tick means the checker labelled every claim correctly. Click any of them to open it above.</p>
+  <div class="grid-wrap"><table class="grid" id="grid"></table></div>
+</section>
+</main>
 
-  <section>
-    <div class="section-head">
-      <h2>Cross-examination console</h2>
-      <span class="section-note">submit your own evidence</span>
-    </div>
-    <div class="console">
-      <div class="console-row">
-        <div>
-          <label class="field-label">Question on file</label>
-          <select id="q-select"></select>
-        </div>
-        <div>
-          <label class="field-label">Proposed answer</label>
-          <textarea id="answer-input" placeholder="Write an answer to test — try changing a number, adding an invented detail, or flipping a fact..."></textarea>
-        </div>
-        <button class="submit" id="submit-btn">Submit for review</button>
-      </div>
-      <div class="console-result" id="console-result"></div>
-    </div>
-  </section>
-
-  <footer>
-    <span>Companion project to &ldquo;A Systematic Review of Key Retrieval-Augmented Generation (RAG) Systems&rdquo; — Section 6.3 &amp; 7.5.4</span>
-    <span>All computation runs client-side in this document.</span>
-  </footer>
-
-</div>
+<footer>
+  <div class="wrap">
+    <span>Companion project to "A Systematic Review of Key Retrieval-Augmented Generation (RAG) Systems", sections 6.3 and 7.5.4.</span>
+    <span>TF-IDF retrieval and a rule-based checker, the same code as the Python version.</span>
+  </div>
+</footer>
 
 <script>
 /* =====================================================================
-   Embedded case data (astronomy & space-physics knowledge base, written
-   in original wording from public, verifiable facts)
+   Embedded data: astronomy knowledge base, questions, generated answers
+   and the challenge sets (built by build_app.py from data/)
    ===================================================================== */
 const CORPUS = [{"doc_id":"doc_01","text":"The speed of light in a vacuum is 299,792 kilometers per second, a physical constant used to define the meter since 1983."},{"doc_id":"doc_02","text":"The Chandrasekhar limit, approximately 1.4 solar masses, defines the maximum mass at which a white dwarf star can remain stable against gravitational collapse."},{"doc_id":"doc_03","text":"Current cosmological measurements place the age of the universe at approximately 13.8 billion years, based on observations of the cosmic microwave background."},{"doc_id":"doc_04","text":"The Hubble constant, which describes the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec."},{"doc_id":"doc_05","text":"Sagittarius A*, the supermassive black hole at the center of the Milky Way, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth."},{"doc_id":"doc_06","text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object."},{"doc_id":"doc_07","text":"The James Webb Space Telescope launched in December 2021 and operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth."},{"doc_id":"doc_08","text":"The Sun contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers."},{"doc_id":"doc_09","text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, defined as one astronomical unit."},{"doc_id":"doc_10","text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system."},{"doc_id":"doc_11","text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars."},{"doc_id":"doc_12","text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 10 million tons."},{"doc_id":"doc_13","text":"The cosmic microwave background radiation has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson."},{"doc_id":"doc_14","text":"Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime."},{"doc_id":"doc_15","text":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a Sun-like star."},{"doc_id":"doc_16","text":"The International Space Station orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes."},{"doc_id":"doc_17","text":"Halley's Comet has an orbital period of about 76 years and was last visible from Earth in 1986."},{"doc_id":"doc_18","text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets."},{"doc_id":"doc_19","text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers."},{"doc_id":"doc_20","text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877."},{"doc_id":"doc_21","text":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth."},{"doc_id":"doc_22","text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses."},{"doc_id":"doc_23","text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second."},{"doc_id":"doc_24","text":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space."},{"doc_id":"doc_25","text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second."}];
 const QA = [{"qid":"q01","question":"What is the speed of light in a vacuum, and why is that value significant?","gold_doc_id":"doc_01"},{"qid":"q02","question":"What is the Chandrasekhar limit?","gold_doc_id":"doc_02"},{"qid":"q03","question":"How old is the universe according to current cosmological measurements?","gold_doc_id":"doc_03"},{"qid":"q04","question":"What is the Hubble constant?","gold_doc_id":"doc_04"},{"qid":"q05","question":"What is Sagittarius A* and how far is it from Earth?","gold_doc_id":"doc_05"},{"qid":"q06","question":"When did Voyager 1 enter interstellar space?","gold_doc_id":"doc_06"},{"qid":"q07","question":"Where does the James Webb Space Telescope operate?","gold_doc_id":"doc_07"},{"qid":"q08","question":"What share of the solar system's mass does the Sun hold, and how large is it?","gold_doc_id":"doc_08"},{"qid":"q09","question":"How long does it take Earth to orbit the Sun, and what defines an astronomical unit?","gold_doc_id":"doc_09"},{"qid":"q10","question":"How far away is Proxima Centauri?","gold_doc_id":"doc_10"},{"qid":"q11","question":"How large is the Milky Way and how many stars does it contain?","gold_doc_id":"doc_11"},{"qid":"q12","question":"How dense is neutron star material?","gold_doc_id":"doc_12"},{"qid":"q13","question":"What is the temperature of the cosmic microwave background, and who discovered it?","gold_doc_id":"doc_13"},{"qid":"q14","question":"When did Einstein publish his general theory of relativity?","gold_doc_id":"doc_14"},{"qid":"q15","question":"What was the first exoplanet discovered around a Sun-like star?","gold_doc_id":"doc_15"},{"qid":"q16","question":"At what altitude does the International Space Station orbit, and how fast does it circle Earth?","gold_doc_id":"doc_16"},{"qid":"q17","question":"How often does Halley's Comet appear, and when was it last seen?","gold_doc_id":"doc_17"},{"qid":"q18","question":"How many exoplanets did NASA's Kepler telescope confirm?","gold_doc_id":"doc_18"},{"qid":"q19","question":"How many kilometers are in a light-year?","gold_doc_id":"doc_19"},{"qid":"q20","question":"What moons does Mars have, and who discovered them?","gold_doc_id":"doc_20"},{"qid":"q21","question":"Which is the largest planet in the solar system, and how massive is it?","gold_doc_id":"doc_21"},{"qid":"q22","question":"When was the first direct image of a black hole taken, and how massive is that black hole?","gold_doc_id":"doc_22"},{"qid":"q23","question":"What is the fastest-spinning neutron star known, and how fast does it rotate?","gold_doc_id":"doc_23"},{"qid":"q24","question":"How large is the observable universe compared to its age?","gold_doc_id":"doc_24"},{"qid":"q25","question":"What is Earth's escape velocity?","gold_doc_id":"doc_25"}];
 const ANSWERS = [{"qid":"q01","question":"What is the speed of light in a vacuum, and why is that value significant?","answer_id":"q01_grounded","answer_type":"grounded","answer_text":"The speed of light in a vacuum is 299,792 kilometers per second, and this constant has been used to define the meter since 1983.","claims":[{"text":"The speed of light in a vacuum is 299,792 kilometers per second, and this constant has been used to define the meter since 1983.","gold_label":"supported"}]},{"qid":"q01","question":"What is the speed of light in a vacuum, and why is that value significant?","answer_id":"q01_numeric","answer_type":"numeric","answer_text":"The speed of light in a vacuum is 150,000 kilometers per second, and this constant has been used to define the meter since 1983.","claims":[{"text":"The speed of light in a vacuum is 150,000 kilometers per second, and this constant has been used to define the meter since 1983.","gold_label":"contradicted"}]},{"qid":"q01","question":"What is the speed of light in a vacuum, and why is that value significant?","answer_id":"q01_fabrication","answer_type":"fabrication","answer_text":"The speed of light in a vacuum is 299,792 kilometers per second, and this constant has been used to define the meter since 1983. This value was first measured precisely by Isaac Newton using a rotating mirror apparatus.","claims":[{"text":"The speed of light in a vacuum is 299,792 kilometers per second, and this constant has been used to define the meter since 1983.","gold_label":"supported"},{"text":"This value was first measured precisely by Isaac Newton using a rotating mirror apparatus.","gold_label":"unsupported"}]},{"qid":"q01","question":"What is the speed of light in a vacuum, and why is that value significant?","answer_id":"q01_contradiction","answer_type":"contradiction","answer_text":"The speed of light in a vacuum varies depending on the observer's velocity and has never been used to define any unit.","claims":[{"text":"The speed of light in a vacuum varies depending on the observer's velocity and has never been used to define any unit.","gold_label":"contradicted"}]},{"qid":"q02","question":"What is the Chandrasekhar limit?","answer_id":"q02_grounded","answer_type":"grounded","answer_text":"The Chandrasekhar limit is approximately 1.4 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse.","claims":[{"text":"The Chandrasekhar limit is approximately 1.4 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse.","gold_label":"supported"}]},{"qid":"q02","question":"What is the Chandrasekhar limit?","answer_id":"q02_numeric","answer_type":"numeric","answer_text":"The Chandrasekhar limit is approximately 8.2 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse.","claims":[{"text":"The Chandrasekhar limit is approximately 8.2 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse.","gold_label":"contradicted"}]},{"qid":"q02","question":"What is the Chandrasekhar limit?","answer_id":"q02_fabrication","answer_type":"fabrication","answer_text":"The Chandrasekhar limit is approximately 1.4 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse. The limit was named after a telescope launched by NASA in 1999.","claims":[{"text":"The Chandrasekhar limit is approximately 1.4 solar masses, the maximum mass at which a white dwarf star can remain stable against gravitational collapse.","gold_label":"supported"},{"text":"The limit was named after a telescope launched by NASA in 1999.","gold_label":"unsupported"}]},{"qid":"q02","question":"What is the Chandrasekhar limit?","answer_id":"q02_contradiction","answer_type":"contradiction","answer_text":"The Chandrasekhar limit describes the minimum mass a star needs to ignite nuclear fusion, not a stability threshold for white dwarfs.","claims":[{"text":"The Chandrasekhar limit describes the minimum mass a star needs to ignite nuclear fusion, not a stability threshold for white dwarfs.","gold_label":"contradicted"}]},{"qid":"q03","question":"How old is the universe according to current cosmological measurements?","answer_id":"q03_grounded","answer_type":"grounded","answer_text":"Current measurements place the age of the universe at approximately 13.8 billion years, based on cosmic microwave background observations.","claims":[{"text":"Current measurements place the age of the universe at approximately 13.8 billion years, based on cosmic microwave background observations.","gold_label":"supported"}]},{"qid":"q03","question":"How old is the universe according to current cosmological measurements?","answer_id":"q03_numeric","answer_type":"numeric","answer_text":"Current measurements place the age of the universe at approximately 4.6 billion years, based on cosmic microwave background observations.","claims":[{"text":"Current measurements place the age of the universe at approximately 4.6 billion years, based on cosmic microwave background observations.","gold_label":"contradicted"}]},{"qid":"q03","question":"How old is the universe according to current cosmological measurements?","answer_id":"q03_fabrication","answer_type":"fabrication","answer_text":"Current measurements place the age of the universe at approximately 13.8 billion years, based on cosmic microwave background observations. This estimate was first confirmed by the Apollo 11 lunar samples.","claims":[{"text":"Current measurements place the age of the universe at approximately 13.8 billion years, based on cosmic microwave background observations.","gold_label":"supported"},{"text":"This estimate was first confirmed by the Apollo 11 lunar samples.","gold_label":"unsupported"}]},{"qid":"q03","question":"How old is the universe according to current cosmological measurements?","answer_id":"q03_contradiction","answer_type":"contradiction","answer_text":"The age of the universe is not known and cosmic microwave background observations provide no constraint on it.","claims":[{"text":"The age of the universe is not known and cosmic microwave background observations provide no constraint on it.","gold_label":"contradicted"}]},{"qid":"q04","question":"What is the Hubble constant?","answer_id":"q04_grounded","answer_type":"grounded","answer_text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec.","claims":[{"text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec.","gold_label":"supported"}]},{"qid":"q04","question":"What is the Hubble constant?","answer_id":"q04_numeric","answer_type":"numeric","answer_text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 210 kilometers per second per megaparsec.","claims":[{"text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 210 kilometers per second per megaparsec.","gold_label":"contradicted"}]},{"qid":"q04","question":"What is the Hubble constant?","answer_id":"q04_fabrication","answer_type":"fabrication","answer_text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec. It was first calculated using data from the Voyager 1 probe.","claims":[{"text":"The Hubble constant, describing the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec.","gold_label":"supported"},{"text":"It was first calculated using data from the Voyager 1 probe.","gold_label":"unsupported"}]},{"qid":"q04","question":"What is the Hubble constant?","answer_id":"q04_contradiction","answer_type":"contradiction","answer_text":"The Hubble constant shows that the universe's expansion is slowing down and will eventually reverse into a contraction.","claims":[{"text":"The Hubble constant shows that the universe's expansion is slowing down and will eventually reverse into a contraction.","gold_label":"contradicted"}]},{"qid":"q05","question":"What is Sagittarius A* and how far is it from Earth?","answer_id":"q05_grounded","answer_type":"grounded","answer_text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth.","claims":[{"text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth.","gold_label":"supported"}]},{"qid":"q05","question":"What is Sagittarius A* and how far is it from Earth?","answer_id":"q05_numeric","answer_type":"numeric","answer_text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 900 light-years from Earth.","claims":[{"text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 900 light-years from Earth.","gold_label":"contradicted"}]},{"qid":"q05","question":"What is Sagittarius A* and how far is it from Earth?","answer_id":"q05_fabrication","answer_type":"fabrication","answer_text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth. It was first photographed directly in 1998 by the Hubble Space Telescope.","claims":[{"text":"Sagittarius A*, the supermassive black hole at the Milky Way's center, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth.","gold_label":"supported"},{"text":"It was first photographed directly in 1998 by the Hubble Space Telescope.","gold_label":"unsupported"}]},{"qid":"q05","question":"What is Sagittarius A* and how far is it from Earth?","answer_id":"q05_contradiction","answer_type":"contradiction","answer_text":"Sagittarius A* is located at the outer edge of the Milky Way, far from the galactic center, about 26,000 light-years from Earth.","claims":[{"text":"Sagittarius A* is located at the outer edge of the Milky Way, far from the galactic center, about 26,000 light-years from Earth.","gold_label":"contradicted"}]},{"qid":"q06","question":"When did Voyager 1 enter interstellar space?","answer_id":"q06_grounded","answer_type":"grounded","answer_text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object.","claims":[{"text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object.","gold_label":"supported"}]},{"qid":"q06","question":"When did Voyager 1 enter interstellar space?","answer_id":"q06_numeric","answer_type":"numeric","answer_text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 1989, making it the most distant human-made object.","claims":[{"text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 1989, making it the most distant human-made object.","gold_label":"contradicted"}]},{"qid":"q06","question":"When did Voyager 1 enter interstellar space?","answer_id":"q06_fabrication","answer_type":"fabrication","answer_text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object. Voyager 1 carries a working camera that still streams live images of interstellar space today.","claims":[{"text":"Voyager 1 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object.","gold_label":"supported"},{"text":"Voyager 1 carries a working camera that still streams live images of interstellar space today.","gold_label":"unsupported"}]},{"qid":"q06","question":"When did Voyager 1 enter interstellar space?","answer_id":"q06_contradiction","answer_type":"contradiction","answer_text":"Voyager 1 remains within the solar system and has never reached interstellar space.","claims":[{"text":"Voyager 1 remains within the solar system and has never reached interstellar space.","gold_label":"contradicted"}]},{"qid":"q07","question":"Where does the James Webb Space Telescope operate?","answer_id":"q07_grounded","answer_type":"grounded","answer_text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth.","claims":[{"text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth.","gold_label":"supported"}]},{"qid":"q07","question":"Where does the James Webb Space Telescope operate?","answer_id":"q07_numeric","answer_type":"numeric","answer_text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 42,000 kilometers from Earth.","claims":[{"text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 42,000 kilometers from Earth.","gold_label":"contradicted"}]},{"qid":"q07","question":"Where does the James Webb Space Telescope operate?","answer_id":"q07_fabrication","answer_type":"fabrication","answer_text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth. It is serviced by astronauts every two years during dedicated shuttle missions.","claims":[{"text":"The James Webb Space Telescope, launched in December 2021, operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth.","gold_label":"supported"},{"text":"It is serviced by astronauts every two years during dedicated shuttle missions.","gold_label":"unsupported"}]},{"qid":"q07","question":"Where does the James Webb Space Telescope operate?","answer_id":"q07_contradiction","answer_type":"contradiction","answer_text":"The James Webb Space Telescope orbits directly above Earth's surface at low altitude, close enough for astronauts to service it.","claims":[{"text":"The James Webb Space Telescope orbits directly above Earth's surface at low altitude, close enough for astronauts to service it.","gold_label":"contradicted"}]},{"qid":"q08","question":"What share of the solar system's mass does the Sun hold, and how large is it?","answer_id":"q08_grounded","answer_type":"grounded","answer_text":"The Sun contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.","claims":[{"text":"The Sun contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.","gold_label":"supported"}]},{"qid":"q08","question":"What share of the solar system's mass does the Sun hold, and how large is it?","answer_id":"q08_numeric","answer_type":"numeric","answer_text":"The Sun contains about 54 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.","claims":[{"text":"The Sun contains about 54 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.","gold_label":"contradicted"}]},{"qid":"q08","question":"What share of the solar system's mass does the Sun hold, and how large is it?","answer_id":"q08_fabrication","answer_type":"fabrication","answer_text":"The Sun contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers. The Sun's core will run out of hydrogen fuel within the next 50 years.","claims":[{"text":"The Sun contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.","gold_label":"supported"},{"text":"The Sun's core will run out of hydrogen fuel within the next 50 years.","gold_label":"unsupported"}]},{"qid":"q08","question":"What share of the solar system's mass does the Sun hold, and how large is it?","answer_id":"q08_contradiction","answer_type":"contradiction","answer_text":"The Sun holds only a small minority of the solar system's total mass, with most of it concentrated in the outer planets.","claims":[{"text":"The Sun holds only a small minority of the solar system's total mass, with most of it concentrated in the outer planets.","gold_label":"contradicted"}]},{"qid":"q09","question":"How long does it take Earth to orbit the Sun, and what defines an astronomical unit?","answer_id":"q09_grounded","answer_type":"grounded","answer_text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, which defines one astronomical unit.","claims":[{"text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, which defines one astronomical unit.","gold_label":"supported"}]},{"qid":"q09","question":"How long does it take Earth to orbit the Sun, and what defines an astronomical unit?","answer_id":"q09_numeric","answer_type":"numeric","answer_text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 12.7 million kilometers, which defines one astronomical unit.","claims":[{"text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 12.7 million kilometers, which defines one astronomical unit.","gold_label":"contradicted"}]},{"qid":"q09","question":"How long does it take Earth to orbit the Sun, and what defines an astronomical unit?","answer_id":"q09_fabrication","answer_type":"fabrication","answer_text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, which defines one astronomical unit. This distance was first measured precisely using radar ranging of Venus in the 1960s.","claims":[{"text":"Earth completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, which defines one astronomical unit.","gold_label":"supported"},{"text":"This distance was first measured precisely using radar ranging of Venus in the 1960s.","gold_label":"unsupported"}]},{"qid":"q09","question":"How long does it take Earth to orbit the Sun, and what defines an astronomical unit?","answer_id":"q09_contradiction","answer_type":"contradiction","answer_text":"Earth's distance from the Sun changes so unpredictably that no standard astronomical unit could ever be defined from it.","claims":[{"text":"Earth's distance from the Sun changes so unpredictably that no standard astronomical unit could ever be defined from it.","gold_label":"contradicted"}]},{"qid":"q10","question":"How far away is Proxima Centauri?","answer_id":"q10_grounded","answer_type":"grounded","answer_text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system.","claims":[{"text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system.","gold_label":"supported"}]},{"qid":"q10","question":"How far away is Proxima Centauri?","answer_id":"q10_numeric","answer_type":"numeric","answer_text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 47 light-years away in the Alpha Centauri system.","claims":[{"text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 47 light-years away in the Alpha Centauri system.","gold_label":"contradicted"}]},{"qid":"q10","question":"How far away is Proxima Centauri?","answer_id":"q10_fabrication","answer_type":"fabrication","answer_text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system. A crewed mission to Proxima Centauri is currently scheduled to launch in 2030.","claims":[{"text":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system.","gold_label":"supported"},{"text":"A crewed mission to Proxima Centauri is currently scheduled to launch in 2030.","gold_label":"unsupported"}]},{"qid":"q10","question":"How far away is Proxima Centauri?","answer_id":"q10_contradiction","answer_type":"contradiction","answer_text":"Proxima Centauri is the farthest known star from the Sun, lying approximately 4.24 light-years away.","claims":[{"text":"Proxima Centauri is the farthest known star from the Sun, lying approximately 4.24 light-years away.","gold_label":"contradicted"}]},{"qid":"q11","question":"How large is the Milky Way and how many stars does it contain?","answer_id":"q11_grounded","answer_type":"grounded","answer_text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars.","claims":[{"text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars.","gold_label":"supported"}]},{"qid":"q11","question":"How large is the Milky Way and how many stars does it contain?","answer_id":"q11_numeric","answer_type":"numeric","answer_text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 3 million stars.","claims":[{"text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 3 million stars.","gold_label":"contradicted"}]},{"qid":"q11","question":"How large is the Milky Way and how many stars does it contain?","answer_id":"q11_fabrication","answer_type":"fabrication","answer_text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars. At its exact center lies a dense cluster of habitable exoplanets.","claims":[{"text":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars.","gold_label":"supported"},{"text":"At its exact center lies a dense cluster of habitable exoplanets.","gold_label":"unsupported"}]},{"qid":"q11","question":"How large is the Milky Way and how many stars does it contain?","answer_id":"q11_contradiction","answer_type":"contradiction","answer_text":"The Milky Way is one of the smallest known galaxies, spanning roughly 100,000 light-years in diameter.","claims":[{"text":"The Milky Way is one of the smallest known galaxies, spanning roughly 100,000 light-years in diameter.","gold_label":"contradicted"}]},{"qid":"q12","question":"How dense is neutron star material?","answer_id":"q12_grounded","answer_type":"grounded","answer_text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 10 million tons.","claims":[{"text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 10 million tons.","gold_label":"supported"}]},{"qid":"q12","question":"How dense is neutron star material?","answer_id":"q12_numeric","answer_type":"numeric","answer_text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 40 tons.","claims":[{"text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 40 tons.","gold_label":"contradicted"}]},{"qid":"q12","question":"How dense is neutron star material?","answer_id":"q12_fabrication","answer_type":"fabrication","answer_text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 10 million tons. This density was first replicated artificially in a laboratory in 2015.","claims":[{"text":"Neutron star material is so dense that a single teaspoon would have a mass of roughly 10 million tons.","gold_label":"supported"},{"text":"This density was first replicated artificially in a laboratory in 2015.","gold_label":"unsupported"}]},{"qid":"q12","question":"How dense is neutron star material?","answer_id":"q12_contradiction","answer_type":"contradiction","answer_text":"Neutron star material is among the least dense substances known, far less dense than ordinary water.","claims":[{"text":"Neutron star material is among the least dense substances known, far less dense than ordinary water.","gold_label":"contradicted"}]},{"qid":"q13","question":"What is the temperature of the cosmic microwave background, and who discovered it?","answer_id":"q13_grounded","answer_type":"grounded","answer_text":"The cosmic microwave background has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.","claims":[{"text":"The cosmic microwave background has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.","gold_label":"supported"}]},{"qid":"q13","question":"What is the temperature of the cosmic microwave background, and who discovered it?","answer_id":"q13_numeric","answer_type":"numeric","answer_text":"The cosmic microwave background has a temperature of approximately 96 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.","claims":[{"text":"The cosmic microwave background has a temperature of approximately 96 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.","gold_label":"contradicted"}]},{"qid":"q13","question":"What is the temperature of the cosmic microwave background, and who discovered it?","answer_id":"q13_fabrication","answer_type":"fabrication","answer_text":"The cosmic microwave background has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson. Penzias and Wilson made the discovery while testing a satellite communications antenna, and were initially trying to eliminate what they thought was noise.","claims":[{"text":"The cosmic microwave background has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.","gold_label":"supported"},{"text":"Penzias and Wilson made the discovery while testing a satellite communications antenna, and were initially trying to eliminate what they thought was noise.","gold_label":"unsupported"}]},{"qid":"q13","question":"What is the temperature of the cosmic microwave background, and who discovered it?","answer_id":"q13_contradiction","answer_type":"contradiction","answer_text":"The cosmic microwave background was never detected experimentally and remains a purely theoretical prediction.","claims":[{"text":"The cosmic microwave background was never detected experimentally and remains a purely theoretical prediction.","gold_label":"contradicted"}]},{"qid":"q14","question":"When did Einstein publish his general theory of relativity?","answer_id":"q14_grounded","answer_type":"grounded","answer_text":"Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime.","claims":[{"text":"Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime.","gold_label":"supported"}]},{"qid":"q14","question":"When did Einstein publish his general theory of relativity?","answer_id":"q14_numeric","answer_type":"numeric","answer_text":"Albert Einstein published his general theory of relativity in 1953, describing gravity as the curvature of spacetime.","claims":[{"text":"Albert Einstein published his general theory of relativity in 1953, describing gravity as the curvature of spacetime.","gold_label":"contradicted"}]},{"qid":"q14","question":"When did Einstein publish his general theory of relativity?","answer_id":"q14_fabrication","answer_type":"fabrication","answer_text":"Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime. Einstein received the Nobel Prize specifically for this theory the following year.","claims":[{"text":"Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime.","gold_label":"supported"},{"text":"Einstein received the Nobel Prize specifically for this theory the following year.","gold_label":"unsupported"}]},{"qid":"q14","question":"When did Einstein publish his general theory of relativity?","answer_id":"q14_contradiction","answer_type":"contradiction","answer_text":"Einstein's general theory of relativity describes gravity as a force transmitted instantaneously through empty space, not as spacetime curvature.","claims":[{"text":"Einstein's general theory of relativity describes gravity as a force transmitted instantaneously through empty space, not as spacetime curvature.","gold_label":"contradicted"}]},{"qid":"q15","question":"What was the first exoplanet discovered around a Sun-like star?","answer_id":"q15_grounded","answer_type":"grounded","answer_text":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a Sun-like star.","claims":[{"text":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a Sun-like star.","gold_label":"supported"}]},{"qid":"q15","question":"What was the first exoplanet discovered around a Sun-like star?","answer_id":"q15_numeric","answer_type":"numeric","answer_text":"51 Pegasi b, discovered in 1961, was the first exoplanet found orbiting a Sun-like star.","claims":[{"text":"51 Pegasi b, discovered in 1961, was the first exoplanet found orbiting a Sun-like star.","gold_label":"contradicted"}]},{"qid":"q15","question":"What was the first exoplanet discovered around a Sun-like star?","answer_id":"q15_fabrication","answer_type":"fabrication","answer_text":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a Sun-like star. 51 Pegasi b has since been confirmed to have liquid water on its surface.","claims":[{"text":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a Sun-like star.","gold_label":"supported"},{"text":"51 Pegasi b has since been confirmed to have liquid water on its surface.","gold_label":"unsupported"}]},{"qid":"q15","question":"What was the first exoplanet discovered around a Sun-like star?","answer_id":"q15_contradiction","answer_type":"contradiction","answer_text":"51 Pegasi b was the last exoplanet ever discovered orbiting a Sun-like star, closing out the search in 1995.","claims":[{"text":"51 Pegasi b was the last exoplanet ever discovered orbiting a Sun-like star, closing out the search in 1995.","gold_label":"contradicted"}]},{"qid":"q16","question":"At what altitude does the International Space Station orbit, and how fast does it circle Earth?","answer_id":"q16_grounded","answer_type":"grounded","answer_text":"The International Space Station orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes.","claims":[{"text":"The International Space Station orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes.","gold_label":"supported"}]},{"qid":"q16","question":"At what altitude does the International Space Station orbit, and how fast does it circle Earth?","answer_id":"q16_numeric","answer_type":"numeric","answer_text":"The International Space Station orbits Earth at an altitude of about 35,000 kilometers, completing one full orbit approximately every 90 minutes.","claims":[{"text":"The International Space Station orbits Earth at an altitude of about 35,000 kilometers, completing one full orbit approximately every 90 minutes.","gold_label":"contradicted"}]},{"qid":"q16","question":"At what altitude does the International Space Station orbit, and how fast does it circle Earth?","answer_id":"q16_fabrication","answer_type":"fabrication","answer_text":"The International Space Station orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes. The station has been continuously occupied by an international crew since 1985.","claims":[{"text":"The International Space Station orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes.","gold_label":"supported"},{"text":"The station has been continuously occupied by an international crew since 1985.","gold_label":"unsupported"}]},{"qid":"q16","question":"At what altitude does the International Space Station orbit, and how fast does it circle Earth?","answer_id":"q16_contradiction","answer_type":"contradiction","answer_text":"The International Space Station is a stationary outpost that does not orbit Earth at all.","claims":[{"text":"The International Space Station is a stationary outpost that does not orbit Earth at all.","gold_label":"contradicted"}]},{"qid":"q17","question":"How often does Halley's Comet appear, and when was it last seen?","answer_id":"q17_grounded","answer_type":"grounded","answer_text":"Halley's Comet has an orbital period of about 76 years and was last visible from Earth in 1986.","claims":[{"text":"Halley's Comet has an orbital period of about 76 years and was last visible from Earth in 1986.","gold_label":"supported"}]},{"qid":"q17","question":"How often does Halley's Comet appear, and when was it last seen?","answer_id":"q17_numeric","answer_type":"numeric","answer_text":"Halley's Comet has an orbital period of about 12 years and was last visible from Earth in 1986.","claims":[{"text":"Halley's Comet has an orbital period of about 12 years and was last visible from Earth in 1986.","gold_label":"contradicted"}]},{"qid":"q17","question":"How often does Halley's Comet appear, and when was it last seen?","answer_id":"q17_fabrication","answer_type":"fabrication","answer_text":"Halley's Comet has an orbital period of about 76 years and was last visible from Earth in 1986. Halley's Comet is expected to collide with Mars during its next close approach.","claims":[{"text":"Halley's Comet has an orbital period of about 76 years and was last visible from Earth in 1986.","gold_label":"supported"},{"text":"Halley's Comet is expected to collide with Mars during its next close approach.","gold_label":"unsupported"}]},{"qid":"q17","question":"How often does Halley's Comet appear, and when was it last seen?","answer_id":"q17_contradiction","answer_type":"contradiction","answer_text":"Halley's Comet follows no predictable orbital period and appears at random, unpredictable intervals.","claims":[{"text":"Halley's Comet follows no predictable orbital period and appears at random, unpredictable intervals.","gold_label":"contradicted"}]},{"qid":"q18","question":"How many exoplanets did NASA's Kepler telescope confirm?","answer_id":"q18_grounded","answer_type":"grounded","answer_text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets.","claims":[{"text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets.","gold_label":"supported"}]},{"qid":"q18","question":"How many exoplanets did NASA's Kepler telescope confirm?","answer_id":"q18_numeric","answer_type":"numeric","answer_text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 40 exoplanets.","claims":[{"text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 40 exoplanets.","gold_label":"contradicted"}]},{"qid":"q18","question":"How many exoplanets did NASA's Kepler telescope confirm?","answer_id":"q18_fabrication","answer_type":"fabrication","answer_text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets. Kepler was decommissioned after colliding with a fragment of space debris.","claims":[{"text":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets.","gold_label":"supported"},{"text":"Kepler was decommissioned after colliding with a fragment of space debris.","gold_label":"unsupported"}]},{"qid":"q18","question":"How many exoplanets did NASA's Kepler telescope confirm?","answer_id":"q18_contradiction","answer_type":"contradiction","answer_text":"NASA's Kepler space telescope failed shortly after launch and confirmed no exoplanet discoveries at all.","claims":[{"text":"NASA's Kepler space telescope failed shortly after launch and confirmed no exoplanet discoveries at all.","gold_label":"contradicted"}]},{"qid":"q19","question":"How many kilometers are in a light-year?","answer_id":"q19_grounded","answer_type":"grounded","answer_text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.","claims":[{"text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.","gold_label":"supported"}]},{"qid":"q19","question":"How many kilometers are in a light-year?","answer_id":"q19_numeric","answer_type":"numeric","answer_text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 384,000 kilometers.","claims":[{"text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 384,000 kilometers.","gold_label":"contradicted"}]},{"qid":"q19","question":"How many kilometers are in a light-year?","answer_id":"q19_fabrication","answer_type":"fabrication","answer_text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers. The term was first coined by NASA engineers during the Apollo program.","claims":[{"text":"One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.","gold_label":"supported"},{"text":"The term was first coined by NASA engineers during the Apollo program.","gold_label":"unsupported"}]},{"qid":"q19","question":"How many kilometers are in a light-year?","answer_id":"q19_contradiction","answer_type":"contradiction","answer_text":"A light-year is a measure of time, not distance, describing how long light takes to travel between two points.","claims":[{"text":"A light-year is a measure of time, not distance, describing how long light takes to travel between two points.","gold_label":"contradicted"}]},{"qid":"q20","question":"What moons does Mars have, and who discovered them?","answer_id":"q20_grounded","answer_type":"grounded","answer_text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877.","claims":[{"text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877.","gold_label":"supported"}]},{"qid":"q20","question":"What moons does Mars have, and who discovered them?","answer_id":"q20_numeric","answer_type":"numeric","answer_text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1954.","claims":[{"text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1954.","gold_label":"contradicted"}]},{"qid":"q20","question":"What moons does Mars have, and who discovered them?","answer_id":"q20_fabrication","answer_type":"fabrication","answer_text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877. Phobos is gradually spiraling outward and will eventually escape Mars's orbit entirely.","claims":[{"text":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877.","gold_label":"supported"},{"text":"Phobos is gradually spiraling outward and will eventually escape Mars's orbit entirely.","gold_label":"unsupported"}]},{"qid":"q20","question":"What moons does Mars have, and who discovered them?","answer_id":"q20_contradiction","answer_type":"contradiction","answer_text":"Mars has no natural moons and has never been observed to have any.","claims":[{"text":"Mars has no natural moons and has never been observed to have any.","gold_label":"contradicted"}]},{"qid":"q21","question":"Which is the largest planet in the solar system, and how massive is it?","answer_id":"q21_grounded","answer_type":"grounded","answer_text":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth.","claims":[{"text":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth.","gold_label":"supported"}]},{"qid":"q21","question":"Which is the largest planet in the solar system, and how massive is it?","answer_id":"q21_numeric","answer_type":"numeric","answer_text":"Jupiter is the largest planet in the solar system, with a mass about 9 times that of Earth.","claims":[{"text":"Jupiter is the largest planet in the solar system, with a mass about 9 times that of Earth.","gold_label":"contradicted"}]},{"qid":"q21","question":"Which is the largest planet in the solar system, and how massive is it?","answer_id":"q21_fabrication","answer_type":"fabrication","answer_text":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth. Jupiter has a solid rocky surface that future missions plan to land crewed vehicles on.","claims":[{"text":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth.","gold_label":"supported"},{"text":"Jupiter has a solid rocky surface that future missions plan to land crewed vehicles on.","gold_label":"unsupported"}]},{"qid":"q21","question":"Which is the largest planet in the solar system, and how massive is it?","answer_id":"q21_contradiction","answer_type":"contradiction","answer_text":"Jupiter is the smallest planet in the solar system, with a mass about 318 times that of Earth.","claims":[{"text":"Jupiter is the smallest planet in the solar system, with a mass about 318 times that of Earth.","gold_label":"contradicted"}]},{"qid":"q22","question":"When was the first direct image of a black hole taken, and how massive is that black hole?","answer_id":"q22_grounded","answer_type":"grounded","answer_text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses.","claims":[{"text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses.","gold_label":"supported"}]},{"qid":"q22","question":"When was the first direct image of a black hole taken, and how massive is that black hole?","answer_id":"q22_numeric","answer_type":"numeric","answer_text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 12 solar masses.","claims":[{"text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 12 solar masses.","gold_label":"contradicted"}]},{"qid":"q22","question":"When was the first direct image of a black hole taken, and how massive is that black hole?","answer_id":"q22_fabrication","answer_type":"fabrication","answer_text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses. The image was captured using a single ground-based optical telescope in Chile.","claims":[{"text":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses.","gold_label":"supported"},{"text":"The image was captured using a single ground-based optical telescope in Chile.","gold_label":"unsupported"}]},{"qid":"q22","question":"When was the first direct image of a black hole taken, and how massive is that black hole?","answer_id":"q22_contradiction","answer_type":"contradiction","answer_text":"No image of a black hole has ever been produced, as their nature makes direct imaging theoretically impossible.","claims":[{"text":"No image of a black hole has ever been produced, as their nature makes direct imaging theoretically impossible.","gold_label":"contradicted"}]},{"qid":"q23","question":"What is the fastest-spinning neutron star known, and how fast does it rotate?","answer_id":"q23_grounded","answer_type":"grounded","answer_text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second.","claims":[{"text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second.","gold_label":"supported"}]},{"qid":"q23","question":"What is the fastest-spinning neutron star known, and how fast does it rotate?","answer_id":"q23_numeric","answer_type":"numeric","answer_text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 3 times per second.","claims":[{"text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 3 times per second.","gold_label":"contradicted"}]},{"qid":"q23","question":"What is the fastest-spinning neutron star known, and how fast does it rotate?","answer_id":"q23_fabrication","answer_type":"fabrication","answer_text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second. It was discovered by amateur astronomers using a backyard telescope in 2010.","claims":[{"text":"The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second.","gold_label":"supported"},{"text":"It was discovered by amateur astronomers using a backyard telescope in 2010.","gold_label":"unsupported"}]},{"qid":"q23","question":"What is the fastest-spinning neutron star known, and how fast does it rotate?","answer_id":"q23_contradiction","answer_type":"contradiction","answer_text":"The pulsar PSR J1748-2446ad is the slowest-spinning neutron star known, rotating approximately 716 times per second.","claims":[{"text":"The pulsar PSR J1748-2446ad is the slowest-spinning neutron star known, rotating approximately 716 times per second.","gold_label":"contradicted"}]},{"qid":"q24","question":"How large is the observable universe compared to its age?","answer_id":"q24_grounded","answer_type":"grounded","answer_text":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space.","claims":[{"text":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space.","gold_label":"supported"}]},{"qid":"q24","question":"How large is the observable universe compared to its age?","answer_id":"q24_numeric","answer_type":"numeric","answer_text":"The observable universe has a diameter of about 13.8 light-years, larger than its age in light-years due to the expansion of space.","claims":[{"text":"The observable universe has a diameter of about 13.8 light-years, larger than its age in light-years due to the expansion of space.","gold_label":"contradicted"}]},{"qid":"q24","question":"How large is the observable universe compared to its age?","answer_id":"q24_fabrication","answer_type":"fabrication","answer_text":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space. Astronomers expect to observe its true edge directly once the next generation of telescopes launches in 2030.","claims":[{"text":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space.","gold_label":"supported"},{"text":"Astronomers expect to observe its true edge directly once the next generation of telescopes launches in 2030.","gold_label":"unsupported"}]},{"qid":"q24","question":"How large is the observable universe compared to its age?","answer_id":"q24_contradiction","answer_type":"contradiction","answer_text":"The observable universe is smaller than its age in light-years would suggest, since space does not expand.","claims":[{"text":"The observable universe is smaller than its age in light-years would suggest, since space does not expand.","gold_label":"contradicted"}]},{"qid":"q25","question":"What is Earth's escape velocity?","answer_id":"q25_grounded","answer_type":"grounded","answer_text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second.","claims":[{"text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second.","gold_label":"supported"}]},{"qid":"q25","question":"What is Earth's escape velocity?","answer_id":"q25_numeric","answer_type":"numeric","answer_text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 0.9 kilometers per second.","claims":[{"text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 0.9 kilometers per second.","gold_label":"contradicted"}]},{"qid":"q25","question":"What is Earth's escape velocity?","answer_id":"q25_fabrication","answer_type":"fabrication","answer_text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second. This figure was first calculated experimentally by test-firing early V2 rockets.","claims":[{"text":"The escape velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second.","gold_label":"supported"},{"text":"This figure was first calculated experimentally by test-firing early V2 rockets.","gold_label":"unsupported"}]},{"qid":"q25","question":"What is Earth's escape velocity?","answer_id":"q25_contradiction","answer_type":"contradiction","answer_text":"Earth has no meaningful escape velocity because its gravitational field does not extend beyond the upper atmosphere.","claims":[{"text":"Earth has no meaningful escape velocity because its gravitational field does not extend beyond the upper atmosphere.","gold_label":"contradicted"}]}];
+const CHALLENGE = {"A":[{"qid":"q01","doc_id":"doc_01","paraphrase":"Light travels through empty space at nearly 300,000 km each second, and since 1983 that figure has defined the length of a metre.","entity_swap":"The speed of sound in a vacuum is 299,792 kilometers per second, a physical constant used to define the meter since 1983."},{"qid":"q02","doc_id":"doc_02","paraphrase":"A white dwarf heavier than roughly 1.4 times the Sun's mass can no longer hold itself up and collapses.","entity_swap":"The Chandrasekhar limit, approximately 1.4 solar masses, defines the maximum mass at which a red giant star can remain stable against gravitational collapse."},{"qid":"q03","doc_id":"doc_03","paraphrase":"Measurements of the leftover radiation from the Big Bang show the cosmos is about 13.8 billion years old.","entity_swap":"Current cosmological measurements place the age of the Milky Way at approximately 13.8 billion years, based on observations of the cosmic microwave background."},{"qid":"q04","doc_id":"doc_04","paraphrase":"Space is expanding at around 70 km/s for every megaparsec of distance, a value known as the Hubble constant.","entity_swap":"The Hubble constant, which describes the rate of cosmic expansion, is measured at approximately 70 kilometers per second per light-year."},{"qid":"q05","doc_id":"doc_05","paraphrase":"The black hole at our galaxy's core weighs about 4.3 million Suns and sits roughly 26,000 light-years away from us.","entity_swap":"Sagittarius A*, the supermassive black hole at the center of the Andromeda galaxy, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth."},{"qid":"q06","doc_id":"doc_06","paraphrase":"Launched in 1977, the Voyager 1 probe reached interstellar space in 2012 and is now farther away than anything else humans have built.","entity_swap":"Voyager 2 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object."},{"qid":"q07","doc_id":"doc_07","paraphrase":"After its launch at the end of 2021, JWST took up position at L2, about one and a half million kilometres from our planet.","entity_swap":"The Hubble Space Telescope launched in December 2021 and operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth."},{"qid":"q08","doc_id":"doc_08","paraphrase":"Nearly all of the solar system's mass, 99.86%, is in the Sun, whose radius is close to 696,000 km.","entity_swap":"Jupiter contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers."},{"qid":"q09","doc_id":"doc_09","paraphrase":"Our planet takes 365.25 days to go around the Sun, at a mean separation of 149.6 million km, which is what we call one astronomical unit.","entity_swap":"Mars completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, defined as one astronomical unit."},{"qid":"q10","doc_id":"doc_10","paraphrase":"No star is closer to the Sun than Proxima Centauri, about 4.24 light-years away in the Alpha Centauri system.","entity_swap":"Barnard's Star, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system."},{"qid":"q11","doc_id":"doc_11","paraphrase":"Our galaxy is about a hundred thousand light-years across and holds something like 200 billion stars.","entity_swap":"The Andromeda galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars."},{"qid":"q12","doc_id":"doc_12","paraphrase":"A teaspoonful of neutron star matter would weigh around ten million tons.","entity_swap":"White dwarf material is so dense that a single teaspoon would have a mass of roughly 10 million tons."},{"qid":"q13","doc_id":"doc_13","paraphrase":"Penzias and Wilson first picked up the cosmic microwave background in 1965; it is only about 2.725 K.","entity_swap":"The cosmic microwave background radiation has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Edwin Hubble and Robert Wilson."},{"qid":"q14","doc_id":"doc_14","paraphrase":"In 1915 Einstein put forward general relativity, which explains gravity as curved spacetime.","entity_swap":"Isaac Newton published his general theory of relativity in 1915, describing gravity as the curvature of spacetime."},{"qid":"q15","doc_id":"doc_15","paraphrase":"The first planet ever found circling a Sun-like star outside our solar system was 51 Pegasi b, in 1995.","entity_swap":"51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a red dwarf star."},{"qid":"q16","doc_id":"doc_16","paraphrase":"The ISS circles our planet roughly 400 km up and goes all the way around about every hour and a half.","entity_swap":"The Hubble Space Telescope orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes."},{"qid":"q17","doc_id":"doc_17","paraphrase":"Halley's Comet comes back roughly every 76 years; people on Earth last saw it in 1986.","entity_swap":"Comet Hale-Bopp has an orbital period of about 76 years and was last visible from Earth in 1986."},{"qid":"q18","doc_id":"doc_18","paraphrase":"Between 2009 and 2018, NASA's Kepler mission confirmed more than 2,600 planets around other stars.","entity_swap":"NASA's Spitzer space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets."},{"qid":"q19","doc_id":"doc_19","paraphrase":"A light-year, the distance light covers in a year, works out to around 9.46 trillion km.","entity_swap":"One light-year, the distance sound travels in a vacuum in one year, is equal to about 9.46 trillion kilometers."},{"qid":"q20","doc_id":"doc_20","paraphrase":"Asaph Hall found both of Mars's little moons, Phobos and Deimos, in 1877.","entity_swap":"Mars has two small moons, Phobos and Deimos, both discovered by astronomer William Herschel in 1877."},{"qid":"q21","doc_id":"doc_21","paraphrase":"No planet in our solar system is bigger than Jupiter, which weighs roughly 318 Earths.","entity_swap":"Jupiter is the largest planet in the solar system, with a mass about 318 times that of Mars."},{"qid":"q22","doc_id":"doc_22","paraphrase":"The first actual picture of a black hole, M87*, came from the Event Horizon Telescope in 2019; it is thought to weigh 6.5 billion Suns.","entity_swap":"In 2019, the Hubble Space Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses."},{"qid":"q23","doc_id":"doc_23","paraphrase":"No known neutron star spins faster than PSR J1748-2446ad, at about 716 rotations a second.","entity_swap":"The pulsar PSR J1748-2446ad is the fastest-spinning white dwarf known, rotating approximately 716 times per second."},{"qid":"q24","doc_id":"doc_24","paraphrase":"Because space has been expanding, the part of the universe we can observe is about 93 billion light-years wide, more than its age would suggest.","entity_swap":"The observable universe has a radius of about 93 billion light-years, larger than its age in light-years due to the expansion of space."},{"qid":"q25","doc_id":"doc_25","paraphrase":"To escape Earth's gravity from the ground you need to reach roughly 11.2 km per second.","entity_swap":"The escape velocity needed to leave the Moon's gravitational field from the surface is approximately 11.2 kilometers per second."}],"B":[{"qid":"q01","doc_id":"doc_01","paraphrase":"Since 1983, the metre has been defined using light's speed in a vacuum, about 299,792 km per second.","entity_swap":"The speed of light in water is 299,792 kilometers per second, a physical constant used to define the meter since 1983."},{"qid":"q02","doc_id":"doc_02","paraphrase":"White dwarfs can't be stable beyond about 1.4 solar masses; that ceiling is called the Chandrasekhar limit.","entity_swap":"The Chandrasekhar limit, approximately 1.4 solar masses, defines the maximum mass at which a neutron star can remain stable against gravitational collapse."},{"qid":"q03","doc_id":"doc_03","paraphrase":"Based on the cosmic microwave background, the universe is thought to be roughly 13.8 billion years old.","entity_swap":"Current cosmological measurements place the age of the universe at approximately 13.8 billion years, based on observations of gamma-ray bursts."},{"qid":"q04","doc_id":"doc_04","paraphrase":"Cosmic expansion proceeds at about 70 kilometres per second per megaparsec, the measured Hubble constant.","entity_swap":"The Planck constant, which describes the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec."},{"qid":"q05","doc_id":"doc_05","paraphrase":"At the Milky Way's centre lies Sagittarius A*, a black hole of about 4.3 million solar masses some 26,000 light-years from Earth.","entity_swap":"Sagittarius A*, the supermassive black hole at the center of the Milky Way, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from the Sun's twin."},{"qid":"q06","doc_id":"doc_06","paraphrase":"Voyager 1, which lifted off in September 1977, entered interstellar space in August 2012.","entity_swap":"Pioneer 10 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object."},{"qid":"q07","doc_id":"doc_07","paraphrase":"The Webb telescope has operated near the Sun-Earth L2 point, about 1.5 million km from Earth, since its December 2021 launch.","entity_swap":"The James Webb Space Telescope launched in December 2021 and operates near the Earth-Moon L1 point, roughly 1.5 million kilometers from Earth."},{"qid":"q08","doc_id":"doc_08","paraphrase":"With a radius near 696,000 km, the Sun holds about 99.86% of all the mass in the solar system.","entity_swap":"The Sun contains about 99.86 percent of the total mass in the galaxy and has a radius of approximately 696,000 kilometers."},{"qid":"q09","doc_id":"doc_09","paraphrase":"One astronomical unit, Earth's average distance from the Sun, is 149.6 million km, and a full orbit takes 365.25 days.","entity_swap":"Earth completes one orbit around the Moon in 365.25 days at an average distance of 149.6 million kilometers, defined as one astronomical unit."},{"qid":"q10","doc_id":"doc_10","paraphrase":"At 4.24 light-years, Proxima Centauri in the Alpha Centauri system is the Sun's closest known stellar neighbour.","entity_swap":"Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Sirius system."},{"qid":"q11","doc_id":"doc_11","paraphrase":"Roughly 200 billion stars fill the Milky Way, which measures about 100,000 light-years in diameter.","entity_swap":"The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion planets."},{"qid":"q12","doc_id":"doc_12","paraphrase":"Matter from a neutron star is dense enough that one teaspoon of it would weigh about 10 million tons.","entity_swap":"Neutron star material is so dense that a single teacup would have a mass of roughly 10 million tons."},{"qid":"q13","doc_id":"doc_13","paraphrase":"Arno Penzias and Robert Wilson detected the 2.725-kelvin cosmic microwave background in 1965.","entity_swap":"The cosmic infrared background radiation has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson."},{"qid":"q14","doc_id":"doc_14","paraphrase":"General relativity, published by Albert Einstein in 1915, treats gravity as the curvature of spacetime.","entity_swap":"Albert Einstein published his special theory of relativity in 1915, describing gravity as the curvature of spacetime."},{"qid":"q15","doc_id":"doc_15","paraphrase":"Discovered in 1995, 51 Pegasi b was the first exoplanet seen orbiting a star like the Sun.","entity_swap":"51 Pegasi b, discovered in 1995, was the first moon found orbiting a Sun-like star."},{"qid":"q16","doc_id":"doc_16","paraphrase":"Orbiting about 400 km above Earth, the International Space Station completes a lap roughly every 90 minutes.","entity_swap":"The International Space Station orbits the Moon at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes."},{"qid":"q17","doc_id":"doc_17","paraphrase":"Last visible from Earth in 1986, Halley's Comet returns on an orbit of about 76 years.","entity_swap":"Halley's Comet has an orbital period of about 76 years and was last visible from Mars in 1986."},{"qid":"q18","doc_id":"doc_18","paraphrase":"The Kepler space telescope, operating from 2009 to 2018, confirmed over 2,600 exoplanets for NASA.","entity_swap":"NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 black holes."},{"qid":"q19","doc_id":"doc_19","paraphrase":"Light moving through a vacuum covers about 9.46 trillion kilometres in a year, the length of one light-year.","entity_swap":"One parsec, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers."},{"qid":"q20","doc_id":"doc_20","paraphrase":"In 1877 the astronomer Asaph Hall discovered Phobos and Deimos, the two small moons of Mars.","entity_swap":"Jupiter has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877."},{"qid":"q21","doc_id":"doc_21","paraphrase":"Jupiter, the solar system's largest planet, has about 318 times Earth's mass.","entity_swap":"Saturn is the largest planet in the solar system, with a mass about 318 times that of Earth."},{"qid":"q22","doc_id":"doc_22","paraphrase":"M87*, a black hole of roughly 6.5 billion solar masses, became in 2019 the first black hole directly imaged, by the Event Horizon Telescope.","entity_swap":"In 2019, the Event Horizon Telescope produced the first direct image of a black hole, Sagittarius A*, estimated to have a mass of 6.5 billion solar masses."},{"qid":"q23","doc_id":"doc_23","paraphrase":"Spinning about 716 times per second, PSR J1748-2446ad is the fastest-rotating neutron star on record.","entity_swap":"The quasar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second."},{"qid":"q24","doc_id":"doc_24","paraphrase":"Thanks to the expansion of space, the observable universe spans roughly 93 billion light-years, more than its age in light-years.","entity_swap":"The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of time."},{"qid":"q25","doc_id":"doc_25","paraphrase":"An object launched from Earth's surface needs about 11.2 km/s to escape the planet's gravity.","entity_swap":"The orbital velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second."}]};
 
 /* =====================================================================
    Minimal TF-IDF + cosine similarity engine (mirrors src/retriever.py
@@ -636,171 +469,232 @@ function runFullAudit(){
   return {claimRows, answerRows, recallAt3, mrr};
 }
 
+
 /* =====================================================================
-   Rendering
+   The checker UI
    ===================================================================== */
-function binLabel(l){ return (l==="unsupported"||l==="contradicted") ? "hallucinated" : "supported"; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const LABEL = { supported: "Backed by a source", unsupported: "Not in any source", contradicted: "Contradicts a source" };
+const TYPE_NAME = { grounded: "Faithful", numeric: "Wrong number", fabrication: "Made-up detail", contradiction: "Contradiction" };
+const TOKEN_RE = /[A-Za-z0-9]+(?:[.'][A-Za-z0-9]+)*/g;
 
-function renderKpis(result){
-  const {claimRows, recallAt3, mrr} = result;
-  let tp=0, fp=0, fn=0, tn=0;
-  claimRows.forEach(r=>{
-    const g = binLabel(r.gold), p = binLabel(r.pred);
-    if(g==="hallucinated" && p==="hallucinated") tp++;
-    else if(g==="supported" && p==="hallucinated") fp++;
-    else if(g==="hallucinated" && p==="supported") fn++;
-    else tn++;
-  });
-  const acc = (tp+tn)/(tp+tn+fp+fn);
-  const prec = tp/(tp+fp||1), rec = tp/(tp+fn||1);
-  const f1 = 2*prec*rec/((prec+rec)||1);
-
-  document.getElementById('kpi-acc').textContent = (acc*100).toFixed(1)+"%";
-  document.getElementById('kpi-f1h').textContent = f1.toFixed(2);
-  document.getElementById('kpi-recall').textContent = (recallAt3*100).toFixed(0)+"%";
-  document.getElementById('kpi-mrr').textContent = mrr.toFixed(2);
-  document.getElementById('m-corpus').textContent = CORPUS.length + " documents";
-  document.getElementById('m-qa').textContent = QA.length + " questions";
-  document.getElementById('m-answers').textContent = ANSWERS.length + " generated answers";
-  document.getElementById('n-claims').textContent = claimRows.length;
-  document.getElementById('n-answers2').textContent = result.answerRows.length;
-}
-
-function renderConfusionMatrix(claimRows){
-  const labels = ["supported","unsupported","contradicted"];
-  const cm = labels.map(()=>labels.map(()=>0));
-  claimRows.forEach(r=>{
-    const gi = labels.indexOf(r.gold), pi = labels.indexOf(r.pred);
-    if(gi>=0 && pi>=0) cm[gi][pi]++;
-  });
-  const tbl = document.getElementById('cm-table');
-  let html = '<tr><th></th>' + labels.map(l=>`<th>${l}</th>`).join('') + '</tr>';
-  labels.forEach((rowLabel,i)=>{
-    html += `<tr><th>${rowLabel}</th>` + labels.map((_,j)=>{
-      const cls = i===j ? 'diag' : '';
-      return `<td class="${cls}">${cm[i][j]}</td>`;
-    }).join('') + '</tr>';
-  });
-  tbl.innerHTML = html;
-}
-
-function renderBarChart(answerRows){
-  const types = ["grounded","numeric","fabrication","contradiction"];
-  const colors = {grounded:"var(--green)", numeric:"var(--red)", fabrication:"var(--amber)", contradiction:"var(--red)"};
-  const container = document.getElementById('bar-chart');
-  container.innerHTML = "";
-  types.forEach(t=>{
-    const rows = answerRows.filter(a=>a.answer_type===t);
-    const avg = rows.reduce((s,a)=>s+a.faithfulness,0)/rows.length;
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `<div class="lbl">${t}</div><div class="bar-track"><div class="bar-fill" style="width:0%; background:${colors[t]}"></div></div><div class="val">${avg.toFixed(2)}</div>`;
-    container.appendChild(row);
-    requestAnimationFrame(()=>{ setTimeout(()=>{ row.querySelector('.bar-fill').style.width = (avg*100)+"%"; }, 60); });
-  });
-}
-
-let CURRENT_FILTER = "all";
-function renderLedger(answerRows){
-  const chips = document.getElementById('chips');
-  const types = ["all","grounded","numeric","fabrication","contradiction"];
-  chips.innerHTML = types.map(t=>`<div class="chip ${t===CURRENT_FILTER?'active':''}" data-type="${t}">${t}</div>`).join('');
-  chips.querySelectorAll('.chip').forEach(c=>{
-    c.onclick = ()=>{ CURRENT_FILTER = c.dataset.type; renderLedger(answerRows); };
-  });
-
-  const filtered = CURRENT_FILTER==="all" ? answerRows : answerRows.filter(a=>a.answer_type===CURRENT_FILTER);
-  document.getElementById('ledger-count').textContent = filtered.length + " cases shown";
-
-  const ledger = document.getElementById('ledger');
-  ledger.innerHTML = "";
-  filtered.forEach(a=>{
-    const row = document.createElement('div');
-    row.className = 'case-row';
-    row.innerHTML = `
-      <div class="cid">${a.answer_id.toUpperCase()}</div>
-      <div class="q">${a.question}</div>
-      <div class="type-tag">${a.answer_type}</div>
-      <div class="result-tag ${a.allCorrect?'correct':'wrong'}">${a.allCorrect?'as expected':'flagged'}</div>
-      <div class="chevron">&#9656;</div>
-    `;
-    const detail = document.createElement('div');
-    detail.className = 'case-detail';
-    detail.innerHTML = `<div class="answer-text">&ldquo;${a.answer_text}&rdquo;</div>` +
-      a.verdicts.map(v => `
-        <div class="claim-card">
-          <span class="stamp ${v.label}">${v.label}</span>
-          <div class="claim-text">${v.claim}</div>
-          <div class="evidence">best-matching evidence (sim ${v.similarity.toFixed(2)}): <b>${v.evidence || '— none above threshold —'}</b></div>
-        </div>
-      `).join('');
-
-    row.onclick = ()=>{
-      const isOpen = detail.classList.contains('show');
-      row.classList.toggle('open', !isOpen);
-      detail.classList.toggle('show', !isOpen);
-    };
-    ledger.appendChild(row);
-    ledger.appendChild(detail);
-  });
-}
-
-function populateQuestionSelect(){
-  const sel = document.getElementById('q-select');
-  sel.innerHTML = QA.map(q=>`<option value="${q.qid}">${q.question}</option>`).join('');
-  updateContextPreview();
-  sel.onchange = updateContextPreview;
-}
-
-function updateContextPreview(){
-  const sel = document.getElementById('q-select');
-  const q = QA.find(x=>x.qid===sel.value);
-  const passages = retrieve(q.question, 3);
-  let box = document.getElementById('ctx-preview');
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'ctx-preview';
-    box.className = 'context-preview';
-    sel.insertAdjacentElement('afterend', box);
+// Which words in a contradicted claim are wrong, and what the source says instead
+function marksFor(v) {
+  const c = v.claim, e = v.evidence || "", out = [];
+  if (v.label !== "contradicted") return out;
+  if (v.reason.startsWith("numbers")) {
+    const ev = [...e.matchAll(NUM_RE)].map((m) => ({ s: m[0], x: parseFloat(m[0].replace(/,/g, "")) }));
+    const vals = numbersIn(c), hedged = words(c).some((w) => HEDGES.has(w));
+    for (const m of c.matchAll(NUM_RE)) {
+      const x = parseFloat(m[0].replace(/,/g, ""));
+      if (!vals.includes(x) || ev.some((n) => numMatch(x, n.x, hedged))) continue;
+      const same = ev.filter((n) => isYear(n.x) === isYear(x));
+      const best = (same.length ? same : ev).slice().sort((a, b) => Math.abs(Math.log(a.x / x)) - Math.abs(Math.log(b.x / x)))[0];
+      out.push({ start: m.index, end: m.index + m[0].length, kind: "wrong", note: best ? best.s : "" });
+    }
+  } else if (v.reason.startsWith("substituted")) {
+    const [nw, old] = v.reason.slice("substituted: ".length).split(" / ").map((s) => new Set(s.split(" ")));
+    const src = [...e.matchAll(TOKEN_RE)].map((m) => m[0]).filter((w) => old.has(stem(w.toLowerCase())));
+    for (const m of c.matchAll(TOKEN_RE)) {
+      if (nw.has(stem(m[0].toLowerCase()))) out.push({ start: m.index, end: m.index + m[0].length, kind: "wrong", note: src.join(" ") });
+    }
+  } else {
+    const opp = new Set(OPPOSITES.flat());
+    for (const m of c.matchAll(TOKEN_RE)) {
+      const w = m[0].toLowerCase();
+      if (NEGATIONS.has(w) || opp.has(w)) {
+        const ew = words(e).find((x) => OPPOSITES.some(([a, b]) => (a === w && b === x) || (b === w && a === x)));
+        out.push({ start: m.index, end: m.index + m[0].length, kind: ew ? "wrong" : "flip", note: ew || "" });
+      }
+    }
   }
-  box.innerHTML = "Retrieved context: " + passages.map(p=>`[${p.doc_id}] ${p.text}`).join(' &nbsp;·&nbsp; ');
+  return out;
 }
 
-function runConsole(){
-  const sel = document.getElementById('q-select');
-  const q = QA.find(x=>x.qid===sel.value);
-  const answerText = document.getElementById('answer-input').value.trim();
-  const resultBox = document.getElementById('console-result');
-  if(!answerText){ resultBox.classList.remove('show'); return; }
+function renderClaim(v, i) {
+  const marks = marksFor(v).sort((a, b) => a.start - b.start);
+  let html = "", pos = 0;
+  for (const m of marks) {
+    if (m.start < pos) continue;
+    html += esc(v.claim.slice(pos, m.start));
+    const word = esc(v.claim.slice(m.start, m.end));
+    html += m.kind === "wrong" && m.note
+      ? `<span class="strike">${word}<span class="caret" aria-label="source says ${esc(m.note)}">${esc(m.note)}</span></span>`
+      : `<span class="flip">${word}</span>`;
+    pos = m.end;
+  }
+  html += esc(v.claim.slice(pos));
+  return `<span class="claim ${v.label}" data-i="${i}" tabindex="0">${html}</span><sup class="ref ${v.label}" aria-hidden="true">${i + 1}</sup>`;
+}
 
+function reasonText(v) {
+  if (v.label === "supported") return v.reason.startsWith("paraphrase") ? "Different wording, but the same numbers and key terms as the source." : "Says the same thing as the source sentence.";
+  if (v.label === "unsupported") return "No retrieved sentence is close enough to back this up.";
+  if (v.reason.startsWith("numbers")) return "The figures don't match the source.";
+  if (v.reason.startsWith("substituted")) return "Copies the source but swaps a key word.";
+  return "Says the opposite of the source.";
+}
+
+let STATE = { q: null, ctx: [], verdicts: [] };
+
+function check() {
+  const q = QA.find((x) => x.qid === document.getElementById("q-select").value);
+  const text = document.getElementById("answer-input").value.trim();
   const passages = retrieve(q.question, 3);
   const ctx = contextSentences(passages);
-  const claims = splitSentences(answerText);
-  const verdicts = scoreClaims(claims, ctx);
-  const score = verdicts.filter(v=>v.label==="supported").length / verdicts.length;
+  const claims = text ? splitSentences(text) : [];
+  const verdicts = claims.length ? scoreClaims(claims, ctx) : [];
+  STATE = { q, ctx, verdicts };
 
-  resultBox.innerHTML = `<div class="verdict-line">Faithfulness score: <b style="color:var(--ink); font-family:'Fraunces',serif; font-size:16px;">${score.toFixed(2)}</b> &nbsp;·&nbsp; retrieved from [${passages.map(p=>p.doc_id).join(', ')}]</div>` +
-    verdicts.map(v => `
-      <div class="claim-card">
-        <span class="stamp ${v.label}">${v.label}</span>
-        <div class="claim-text">${v.claim}</div>
-        <div class="evidence">best-matching evidence (sim ${v.similarity.toFixed(2)}): <b>${v.evidence || '— none above threshold —'}</b></div>
-      </div>
-    `).join('');
-  resultBox.classList.add('show');
+  // sources, sentence by sentence
+  let k = 0;
+  document.getElementById("sources").innerHTML = passages.map((p) => {
+    const sents = splitSentences(p.text).map((s) => {
+      const used = verdicts.some((v) => v.evidence === s && v.label !== "unsupported");
+      return `<span class="sent${used ? " used" : ""}" data-s="${k++}">${esc(s)}</span>`;
+    }).join(" ");
+    return `<li class="source"><div class="source-meta"><span>${esc(p.doc_id.replace("_", " "))}</span><span>match ${p.score.toFixed(2)}</span></div>${sents}</li>`;
+  }).join("");
+
+  const proof = document.getElementById("proof");
+  const notes = document.getElementById("notes");
+  if (!verdicts.length) {
+    proof.innerHTML = '<p class="empty">Type or paste an answer above, or load one of the examples.</p>';
+    notes.innerHTML = ""; document.getElementById("tally").innerHTML = "";
+    return;
+  }
+  proof.innerHTML = verdicts.map(renderClaim).join(" ");
+  notes.innerHTML = verdicts.map((v, i) => `
+    <li data-i="${i}"><span class="n ${v.label}">${i + 1}</span>
+      <div><strong>${LABEL[v.label]}.</strong> <span class="why">${reasonText(v)}</span>
+      <span class="sim">Closest source sentence scored ${v.similarity.toFixed(2)}.</span></div></li>`).join("");
+  const ok = verdicts.filter((v) => v.label === "supported").length;
+  document.getElementById("tally").innerHTML = `<b>${ok} of ${verdicts.length}</b> claim${verdicts.length > 1 ? "s" : ""} backed by the sources`;
+}
+
+// hovering a claim or note lights up the claim, its note and its source sentence
+function light(i) {
+  document.querySelectorAll(".lit").forEach((el) => el.classList.remove("lit"));
+  if (i == null) return;
+  const v = STATE.verdicts[i];
+  document.querySelectorAll(`.claim[data-i="${i}"], .notes li[data-i="${i}"]`).forEach((el) => el.classList.add("lit"));
+  if (!v || !v.evidence || v.label === "unsupported") return;
+  const s = STATE.ctx.indexOf(v.evidence);
+  const el = document.querySelector(`.sent[data-s="${s}"]`);
+  if (el) {
+    el.classList.add("lit");
+    const cc = new Set(contentWords(words(v.claim)));
+    el.innerHTML = esc(el.textContent).replace(/[A-Za-z0-9]+(?:[.'][A-Za-z0-9]+)*/g, (w) => (cc.has(stem(w.toLowerCase())) ? `<u>${w}</u>` : w));
+  }
+}
+function unlight() {
+  document.querySelectorAll(".sent u").forEach((u) => u.replaceWith(u.textContent));
+  light(null);
+}
+
+function presetsFor(qid) {
+  const list = ANSWERS.filter((a) => a.qid === qid).map((a) => ({ key: a.answer_type, label: TYPE_NAME[a.answer_type], text: a.answer_text }));
+  const b = CHALLENGE.B.find((x) => x.qid === qid);
+  if (b) list.splice(1, 0, { key: "paraphrase", label: "Paraphrased", text: b.paraphrase }, { key: "swap", label: "Swapped name", text: b.entity_swap });
+  return list;
+}
+
+function setQuestion(qid, presetKey, text) {
+  const sel = document.getElementById("q-select");
+  sel.value = qid;
+  const ps = presetsFor(qid);
+  const box = document.getElementById("presets");
+  box.innerHTML = "<span>Examples</span>" + ps.map((p) => `<button class="preset" data-k="${p.key}" aria-pressed="false">${p.label}</button>`).join("");
+  box.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", () => {
+    const p = ps.find((x) => x.key === b.dataset.k);
+    document.getElementById("answer-input").value = p.text;
+    box.querySelectorAll(".preset").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    check();
+  }));
+  const pick = ps.find((p) => p.key === presetKey) || ps[0];
+  document.getElementById("answer-input").value = text != null ? text : pick.text;
+  box.querySelectorAll(".preset").forEach((x) => x.setAttribute("aria-pressed", String(text == null && x.dataset.k === pick.key)));
+  check();
+}
+
+function openInDesk(qid, key, text) {
+  setQuestion(qid, key, text);
+  document.querySelector(".desk").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/* =====================================================================
+   Results: benchmark, held-out set, retrieval, and the ledger
+   ===================================================================== */
+const binary = (l) => (l === "supported" ? "supported" : "hallucinated");
+
+function renderResults(audit) {
+  const rows = audit.claimRows;
+  const right = rows.filter((r) => binary(r.gold) === binary(r.pred)).length;
+  document.getElementById("acc-bench").textContent = (100 * right / rows.length).toFixed(1) + "%";
+  document.getElementById("acc-bench-note").textContent = `${right} of ${rows.length} claims labelled correctly (supported vs. not). Easy, because most true claims are copied word for word.`;
+  document.getElementById("recall").textContent = Math.round(audit.recallAt3 * 100) + "%";
+  document.getElementById("recall-note").textContent = `The passage holding the answer is in the top three for every question. Mean reciprocal rank ${audit.mrr.toFixed(2)}.`;
+
+  // held-out set B: a paraphrase should be supported, a swapped name should not
+  let para = 0, swap = 0;
+  const fails = [];
+  CHALLENGE.B.forEach((it) => {
+    const q = QA.find((x) => x.qid === it.qid);
+    const ctx = contextSentences(retrieve(q.question, 3));
+    // scored one at a time, exactly like src/challenge.py
+    const [p] = scoreClaims([it.paraphrase], ctx), [s] = scoreClaims([it.entity_swap], ctx);
+    if (p.label === "supported") para++; else fails.push({ qid: it.qid, key: "paraphrase", text: it.paraphrase, kind: "Faithful paraphrase", got: LABEL[p.label].toLowerCase() });
+    if (s.label !== "supported") swap++; else fails.push({ qid: it.qid, key: "swap", text: it.entity_swap, kind: "Swapped name", got: "backed by a source" });
+  });
+  const n = CHALLENGE.B.length;
+  document.getElementById("acc-b").textContent = Math.round(100 * (para + swap) / (2 * n)) + "%";
+  document.getElementById("acc-b-note").textContent = `Catches ${swap} of ${n} answers with one name swapped, and accepts ${para} of ${n} faithful paraphrases. Rewording without shared numbers is what still beats it.`;
+  document.getElementById("fails").innerHTML = fails.map((f, i) =>
+    `<li><button data-f="${i}"><span class="ft">${esc(f.text)}</span><span class="fk">${f.kind}<br>checker said <b>${esc(f.got)}</b></span></button></li>`).join("");
+  document.querySelectorAll("#fails button").forEach((b) => b.addEventListener("click", () => {
+    const f = fails[+b.dataset.f]; openInDesk(f.qid, f.key);
+  }));
+
+  // confusion matrix
+  const L = ["supported", "unsupported", "contradicted"];
+  const cm = L.map(() => L.map(() => 0));
+  rows.forEach((r) => { const g = L.indexOf(r.gold), p = L.indexOf(r.pred); if (g >= 0 && p >= 0) cm[g][p]++; });
+  document.getElementById("cm").innerHTML = `<thead><tr><th></th>${L.map((l) => `<th>said ${l}</th>`).join("")}</tr></thead><tbody>` +
+    L.map((l, i) => `<tr><th>${l}</th>${L.map((_, j) => `<td class="${i === j ? "diag" : cm[i][j] && binary(L[i]) !== binary(L[j]) ? "off" : ""}">${cm[i][j]}</td>`).join("")}</tr>`).join("") + "</tbody>";
+
+  // ledger grid
+  const types = ["grounded", "numeric", "fabrication", "contradiction"];
+  document.getElementById("grid").innerHTML = `<thead><tr><th>Question</th>${types.map((t) => `<th>${TYPE_NAME[t]}</th>`).join("")}</tr></thead><tbody>` +
+    QA.map((q) => `<tr><td>${esc(q.question)}</td>${types.map((t) => {
+      const a = audit.answerRows.find((x) => x.qid === q.qid && x.answer_type === t);
+      if (!a) return "<td></td>";
+      return `<td><button class="cell ${a.allCorrect ? "ok" : "miss"}" data-q="${q.qid}" data-t="${t}" aria-label="${TYPE_NAME[t]} answer: ${a.allCorrect ? "labelled correctly" : "missed"}" title="${esc(a.answer_text)}">${a.allCorrect ? "✓" : "✗"}</button></td>`;
+    }).join("")}</tr>`).join("") + "</tbody>";
+  document.querySelectorAll("#grid .cell").forEach((b) => b.addEventListener("click", () => openInDesk(b.dataset.q, b.dataset.t)));
 }
 
 /* =====================================================================
    Boot
    ===================================================================== */
-document.getElementById('today').textContent = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-const AUDIT = runFullAudit();
-renderKpis(AUDIT);
-renderConfusionMatrix(AUDIT.claimRows);
-renderBarChart(AUDIT.answerRows);
-renderLedger(AUDIT.answerRows);
-populateQuestionSelect();
-document.getElementById('submit-btn').onclick = runConsole;
+(function boot() {
+  const sel = document.getElementById("q-select");
+  sel.innerHTML = QA.map((q) => `<option value="${q.qid}">${esc(q.question)}</option>`).join("");
+  sel.addEventListener("change", () => setQuestion(sel.value));
+  let t = null;
+  document.getElementById("answer-input").addEventListener("input", () => {
+    document.querySelectorAll(".preset").forEach((x) => x.setAttribute("aria-pressed", "false"));
+    clearTimeout(t); t = setTimeout(check, 120);
+  });
+  const over = (e) => { const el = e.target.closest("[data-i]"); unlight(); if (el) light(+el.dataset.i); };
+  for (const id of ["proof", "notes"]) {
+    const el = document.getElementById(id);
+    el.addEventListener("mouseover", over);
+    el.addEventListener("focusin", over);
+    el.addEventListener("mouseleave", unlight);
+  }
+  setQuestion("q06", "swap");
+  renderResults(runFullAudit());
+})();
 </script>
 </body>
 </html>
