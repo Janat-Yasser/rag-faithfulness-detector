@@ -415,21 +415,16 @@ const ANSWERS = [{"qid":"q01","question":"What is the speed of light in a vacuum
    and src/faithfulness.py from the Python project, reimplemented so the
    whole audit can run live in the browser with zero dependencies)
    ===================================================================== */
-const STOPWORDS = new Set(("a about above after again against all am an and any are aren't as at be because been "+
-"before being below between both but by can't cannot could couldn't did didn't do does doesn't doing don't down "+
-"during each few for from further had hadn't has hasn't have haven't having he he'd he'll he's her here here's hers "+
-"herself him himself his how how's i i'd i'll i'm i've if in into is isn't it it's its itself let's me more most "+
-"mustn't my myself no nor not of off on once only or other ought our ours ourselves out over own same shan't she "+
-"she'd she'll she's should shouldn't so some such than that that's the their theirs them themselves then there "+
-"there's these they they'd they'll they're they've this those through to too under until up very was wasn't we "+
-"we'd we'll we're we've were weren't what what's when when's where where's which while who who's whom why why's "+
-"with won't would wouldn't you you'd you'll you're you've your yours yourself yourselves").split(" "));
+// Same tokenisation as scikit-learn's TfidfVectorizer(stop_words="english", ngram_range=(1,2)):
+// lowercase, tokens of 2+ word characters, drop stop words, then add bigrams.
+// scikit-learn's English stop-word list, so tokenisation and word filtering match the Python code exactly
+const SK_STOP = ["a", "about", "above", "across", "after", "afterwards", "again", "against", "all", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst", "amoungst", "amount", "an", "and", "another", "any", "anyhow", "anyone", "anything", "anyway", "anywhere", "are", "around", "as", "at", "back", "be", "became", "because", "become", "becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside", "besides", "between", "beyond", "bill", "both", "bottom", "but", "by", "call", "can", "cannot", "cant", "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done", "down", "due", "during", "each", "eg", "eight", "either", "eleven", "else", "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen", "fifty", "fill", "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however", "hundred", "i", "ie", "if", "in", "inc", "indeed", "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly", "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine", "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name", "namely", "neither", "never", "nevertheless", "next", "nine", "no", "nobody", "none", "noone", "nor", "not", "nothing", "now", "nowhere", "of", "off", "often", "on", "once", "one", "only", "onto", "or", "other", "others", "otherwise", "our", "ours", "ourselves", "out", "over", "own", "part", "per", "perhaps", "please", "put", "rather", "re", "same", "see", "seem", "seemed", "seeming", "seems", "serious", "several", "she", "should", "show", "side", "since", "sincere", "six", "sixty", "so", "some", "somehow", "someone", "something", "sometime", "sometimes", "somewhere", "still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thick", "thin", "third", "this", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "top", "toward", "towards", "twelve", "twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "via", "was", "we", "well", "were", "what", "whatever", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would", "yet", "you", "your", "yours", "yourself", "yourselves"];
+const SK_STOP_SET = new Set(SK_STOP);
 
 function tokenize(text){
-  const words = text.toLowerCase().replace(/[^a-z0-9%.\s]/g," ").split(/\s+/).filter(Boolean)
-    .filter(w => !STOPWORDS.has(w) && w.length > 1);
+  const words = (text.toLowerCase().match(/\b\w\w+\b/g) || []).filter(w => !SK_STOP_SET.has(w));
   const grams = [...words];
-  for(let i=0;i<words.length-1;i++) grams.push(words[i]+"_"+words[i+1]);
+  for(let i=0;i<words.length-1;i++) grams.push(words[i]+" "+words[i+1]);
   return grams;
 }
 
@@ -481,54 +476,121 @@ function contextSentences(passages){
   return out;
 }
 
-// ---- Faithfulness scorer ----
-const NUMBER_RE = /\d+(?:,\d{3})*(?:\.\d+)?/g;
-const NEGATION_WORDS = ["not","no","never","none","cancelled","banned","unable","without","no longer"];
-const SUPERLATIVE_PAIRS = [["largest","smallest"],["smallest","largest"],["tallest","shortest"],
-  ["shortest","tallest"],["warmest","coolest"],["primary","banned"],
-  ["fastest","slowest"],["slowest","fastest"],["nearest","farthest"],["farthest","nearest"],
-  ["closest","farthest"],["first","last"],["last","first"],["highest","lowest"],["lowest","highest"]];
-const SUPPORT_THRESHOLD = 0.28;
+// ---- Faithfulness scorer (v2; mirrors src/faithfulness.py) ----
+
+const NUM_RE = /(?<![A-Za-z\d.])\d+(?:,\d{3})*(?:\.\d+)?(?![A-Za-z\d])/g;
+const WORD_RE = /[a-z0-9]+(?:[.'][a-z0-9]+)*/g;
+const NEGATIONS = new Set(["not","no","never","none","cannot","neither","nor","without","unable","cancelled","banned"]);
+const OPPOSITES = [["largest","smallest"],["tallest","shortest"],["warmest","coolest"],["fastest","slowest"],
+  ["nearest","farthest"],["closest","farthest"],["first","last"],["highest","lowest"],["maximum","minimum"],["primary","banned"]];
+const HEDGES = new Set(["about","around","roughly","approximately","nearly","almost","some","close","over","near"]);
+const STOP = new Set([...SK_STOP, ...HEDGES]);
+const SUPPORT_THRESHOLD = 0.28, COPY_THRESHOLD = 0.45, ANCHOR_OVERLAP = 0.20;
+const SUFFIXES = ["ational","ation","ional","ing","ies","ied","ed","es","al","s"];
+
+function stem(w){ for(const s of SUFFIXES){ if(w.length > s.length+3 && w.endsWith(s)) return w.slice(0,-s.length); } return w; }
+function words(t){ return (t.toLowerCase().replace(/,/g,"").match(WORD_RE) || []); }
+function contentWords(ws){ return ws.filter(w => !STOP.has(w) && !/^\d/.test(w)).map(stem); }
+const isYear = x => Number.isInteger(x) && x >= 1000 && x <= 2100;
 
 function numbersIn(text){
-  const m = text.replace(/,/g,"").match(NUMBER_RE) || [];
-  return new Set(m);
-}
-function setsEqual(a,b){ if(a.size!==b.size) return false; for(const x of a) if(!b.has(x)) return false; return true; }
-
-function hasPolarityFlip(claim, evidence){
-  const c = claim.toLowerCase(), e = evidence.toLowerCase();
-  for(const [w,o] of SUPERLATIVE_PAIRS){
-    if(e.includes(w) && c.includes(o)) return true;
-    if(e.includes(o) && c.includes(w)) return true;
+  const out = [];
+  for(const m of text.matchAll(NUM_RE)){
+    const x = parseFloat(m[0].replace(/,/g,""));
+    const beforeTok = text.slice(0, m.index).trimEnd().split(" ").pop() || "";
+    const afterTok = text.slice(m.index + m[0].length).trimStart().split(" ")[0] || "";
+    const prevCap = !!beforeTok && /^[A-Z]/.test(beforeTok) && !/[,;:]$/.test(beforeTok) && m.index > 0 && text[m.index-1] === " ";
+    const nextCap = !!afterTok && /^[A-Z]/.test(afterTok);
+    if(!isYear(x) && (prevCap || nextCap)) continue;   // part of a name ("Voyager 1")
+    out.push(x);
   }
-  const negC = NEGATION_WORDS.some(w=>c.includes(w));
-  const negE = NEGATION_WORDS.some(w=>e.includes(w));
+  return out;
+}
+function numMatch(a,b,hedged){
+  if(a===b) return true;
+  if(!hedged || isYear(a) || isYear(b)) return false;
+  return Math.abs(a-b) <= 0.05*Math.max(Math.abs(a),Math.abs(b));
+}
+function numericStatus(claim, evidence){
+  const cn = numbersIn(claim), en = numbersIn(evidence);
+  if(!cn.length || !en.length) return null;
+  const hedged = words(claim).some(w => HEDGES.has(w));
+  return cn.every(c => en.some(e => numMatch(c,e,hedged))) ? "match" : "conflict";
+}
+function polarityFlip(claim, evidence){
+  const cw = new Set(words(claim)), ew = new Set(words(evidence));
+  for(const [a,b] of OPPOSITES){ if((ew.has(a)&&cw.has(b)) || (ew.has(b)&&cw.has(a))) return true; }
+  const negC = [...cw].some(w=>NEGATIONS.has(w)), negE = [...ew].some(w=>NEGATIONS.has(w));
   return negC !== negE;
+}
+
+// difflib.SequenceMatcher (no junk heuristics) -> opcodes
+function matchingBlocks(a,b){
+  const blocks = [];
+  (function rec(alo,ahi,blo,bhi){
+    let bi=alo, bj=blo, bs=0, prev=new Map();
+    for(let i=alo;i<ahi;i++){
+      const cur=new Map();
+      for(let j=blo;j<bhi;j++){
+        if(a[i]===b[j]){ const k=(prev.get(j-1)||0)+1; cur.set(j,k); if(k>bs){ bi=i-k+1; bj=j-k+1; bs=k; } }
+      }
+      prev=cur;
+    }
+    if(bs){ if(alo<bi && blo<bj) rec(alo,bi,blo,bj); blocks.push([bi,bj,bs]); if(bi+bs<ahi && bj+bs<bhi) rec(bi+bs,ahi,bj+bs,bhi); }
+  })(0,a.length,0,b.length);
+  blocks.sort((x,y)=>x[0]-y[0]||x[1]-y[1]);
+  blocks.push([a.length,b.length,0]);
+  return blocks;
+}
+function opcodes(a,b){
+  let i=0,j=0; const ops=[];
+  for(const [ai,bj,size] of matchingBlocks(a,b)){
+    const tag = (i<ai && j<bj) ? "replace" : (i<ai ? "delete" : (j<bj ? "insert" : null));
+    if(tag) ops.push([tag,i,ai,j,bj]);
+    i=ai+size; j=bj+size;
+  }
+  return ops;
+}
+function substitution(claim, evidence){
+  const cw = words(claim), ew = words(evidence);
+  const cAll = new Set(contentWords(cw)), eAll = new Set(contentWords(ew));
+  for(const [op,i1,i2,j1,j2] of opcodes(ew, cw)){
+    if(op!=="replace") continue;
+    const nw = contentWords(cw.slice(j1,j2)).filter(w=>!eAll.has(w));
+    const old = contentWords(ew.slice(i1,i2)).filter(w=>!cAll.has(w));
+    if(nw.length && old.length) return nw.join(" ")+" / "+old.join(" ");
+  }
+  return null;
+}
+
+function judge(claim, evidence, sim){
+  const nums = numericStatus(claim, evidence);
+  const cc = new Set(contentWords(words(claim))), ec = new Set(contentWords(words(evidence)));
+  const overlap = [...cc].filter(w=>ec.has(w)).length / Math.max(1, cc.size);
+  if(sim >= SUPPORT_THRESHOLD){
+    if(nums==="conflict") return ["contradicted","numbers disagree"];
+    if(polarityFlip(claim, evidence)) return ["contradicted","negation / opposite"];
+    if(sim >= COPY_THRESHOLD){ const sub = substitution(claim, evidence); if(sub) return ["contradicted","substituted: "+sub]; }
+    return ["supported","matches evidence"];
+  }
+  if(nums==="match" && overlap>=ANCHOR_OVERLAP && !polarityFlip(claim,evidence)) return ["supported","paraphrase: numbers and key words match"];
+  if(nums==="conflict" && overlap>=ANCHOR_OVERLAP) return ["contradicted","numbers disagree"];
+  return ["unsupported","no matching evidence"];
 }
 
 function scoreClaims(claims, contextSents){
   if(contextSents.length===0){
-    return claims.map(c => ({claim:c, label:"unsupported", evidence:"", similarity:0}));
+    return claims.map(c => ({claim:c, label:"unsupported", evidence:"", similarity:0, reason:"no context"}));
   }
   const {vectors} = fitTfidf([...claims, ...contextSents]);
   const claimVecs = vectors.slice(0, claims.length);
   const ctxVecs = vectors.slice(claims.length);
-
   return claims.map((claim, i) => {
     let best = -1, bestIdx = 0;
     ctxVecs.forEach((v,j)=>{ const s = cosine(claimVecs[i], v); if(s>best){best=s; bestIdx=j;} });
     const evidence = contextSents[bestIdx];
-    let label;
-    if(best < SUPPORT_THRESHOLD){
-      label = "unsupported";
-    } else {
-      const cn = numbersIn(claim), en = numbersIn(evidence);
-      const numericConflict = cn.size>0 && en.size>0 && !setsEqual(cn,en);
-      const polarityConflict = hasPolarityFlip(claim, evidence);
-      label = (numericConflict || polarityConflict) ? "contradicted" : "supported";
-    }
-    return {claim, label, evidence, similarity: best};
+    const [label, reason] = judge(claim, evidence, best);
+    return {claim, label, evidence, similarity: best, reason};
   });
 }
 

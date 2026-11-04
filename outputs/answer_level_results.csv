@@ -18,7 +18,7 @@ q04_contradiction,q04,contradiction,0.0,False,doc_04
 q05_grounded,q05,grounded,1.0,True,doc_05
 q05_numeric,q05,numeric,0.0,False,doc_05
 q05_fabrication,q05,fabrication,0.5,False,doc_05
-q05_contradiction,q05,contradiction,0.0,False,doc_05
+q05_contradiction,q05,contradiction,1.0,False,doc_05
 q06_grounded,q06,grounded,1.0,True,doc_06
 q06_numeric,q06,numeric,0.0,False,doc_06
 q06_fabrication,q06,fabrication,0.5,False,doc_06
@@ -42,7 +42,7 @@ q10_contradiction,q10,contradiction,0.0,False,doc_10
 q11_grounded,q11,grounded,1.0,True,doc_11
 q11_numeric,q11,numeric,0.0,False,doc_11
 q11_fabrication,q11,fabrication,0.5,False,doc_11
-q11_contradiction,q11,contradiction,0.0,False,doc_11
+q11_contradiction,q11,contradiction,1.0,False,doc_11
 q12_grounded,q12,grounded,1.0,True,doc_12
 q12_numeric,q12,numeric,0.0,False,doc_12
 q12_fabrication,q12,fabrication,0.5,False,doc_12

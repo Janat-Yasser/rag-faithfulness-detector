@@ -1,0 +1,410 @@
+{
+  "metrics": {
+    "paraphrase_accepted": 0.64,
+    "entity_swap_caught": 0.88,
+    "overall_accuracy": 0.76,
+    "n": 50
+  },
+  "rows": [
+    {
+      "qid": "q01",
+      "kind": "paraphrase",
+      "claim": "Light travels through empty space at nearly 300,000 km each second, and since 1983 that figure has defined the length of a metre.",
+      "predicted": "contradicted",
+      "similarity": 0.083,
+      "correct": false
+    },
+    {
+      "qid": "q01",
+      "kind": "entity_swap",
+      "claim": "The speed of sound in a vacuum is 299,792 kilometers per second, a physical constant used to define the meter since 1983.",
+      "predicted": "contradicted",
+      "similarity": 0.831,
+      "correct": true
+    },
+    {
+      "qid": "q02",
+      "kind": "paraphrase",
+      "claim": "A white dwarf heavier than roughly 1.4 times the Sun's mass can no longer hold itself up and collapses.",
+      "predicted": "unsupported",
+      "similarity": 0.116,
+      "correct": false
+    },
+    {
+      "qid": "q02",
+      "kind": "entity_swap",
+      "claim": "The Chandrasekhar limit, approximately 1.4 solar masses, defines the maximum mass at which a red giant star can remain stable against gravitational collapse.",
+      "predicted": "contradicted",
+      "similarity": 0.743,
+      "correct": true
+    },
+    {
+      "qid": "q03",
+      "kind": "paraphrase",
+      "claim": "Measurements of the leftover radiation from the Big Bang show the cosmos is about 13.8 billion years old.",
+      "predicted": "supported",
+      "similarity": 0.163,
+      "correct": true
+    },
+    {
+      "qid": "q03",
+      "kind": "entity_swap",
+      "claim": "Current cosmological measurements place the age of the Milky Way at approximately 13.8 billion years, based on observations of the cosmic microwave background.",
+      "predicted": "contradicted",
+      "similarity": 0.802,
+      "correct": true
+    },
+    {
+      "qid": "q04",
+      "kind": "paraphrase",
+      "claim": "Space is expanding at around 70 km/s for every megaparsec of distance, a value known as the Hubble constant.",
+      "predicted": "supported",
+      "similarity": 0.163,
+      "correct": true
+    },
+    {
+      "qid": "q04",
+      "kind": "entity_swap",
+      "claim": "The Hubble constant, which describes the rate of cosmic expansion, is measured at approximately 70 kilometers per second per light-year.",
+      "predicted": "contradicted",
+      "similarity": 0.809,
+      "correct": true
+    },
+    {
+      "qid": "q05",
+      "kind": "paraphrase",
+      "claim": "The black hole at our galaxy's core weighs about 4.3 million Suns and sits roughly 26,000 light-years away from us.",
+      "predicted": "supported",
+      "similarity": 0.26,
+      "correct": true
+    },
+    {
+      "qid": "q05",
+      "kind": "entity_swap",
+      "claim": "Sagittarius A*, the supermassive black hole at the center of the Andromeda galaxy, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from Earth.",
+      "predicted": "contradicted",
+      "similarity": 0.779,
+      "correct": true
+    },
+    {
+      "qid": "q06",
+      "kind": "paraphrase",
+      "claim": "Launched in 1977, the Voyager 1 probe reached interstellar space in 2012 and is now farther away than anything else humans have built.",
+      "predicted": "supported",
+      "similarity": 0.191,
+      "correct": true
+    },
+    {
+      "qid": "q06",
+      "kind": "entity_swap",
+      "claim": "Voyager 2 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object.",
+      "predicted": "supported",
+      "similarity": 1.0,
+      "correct": false
+    },
+    {
+      "qid": "q07",
+      "kind": "paraphrase",
+      "claim": "After its launch at the end of 2021, JWST took up position at L2, about one and a half million kilometres from our planet.",
+      "predicted": "supported",
+      "similarity": 0.073,
+      "correct": true
+    },
+    {
+      "qid": "q07",
+      "kind": "entity_swap",
+      "claim": "The Hubble Space Telescope launched in December 2021 and operates near the Sun-Earth L2 point, roughly 1.5 million kilometers from Earth.",
+      "predicted": "contradicted",
+      "similarity": 0.861,
+      "correct": true
+    },
+    {
+      "qid": "q08",
+      "kind": "paraphrase",
+      "claim": "Nearly all of the solar system's mass, 99.86%, is in the Sun, whose radius is close to 696,000 km.",
+      "predicted": "supported",
+      "similarity": 0.303,
+      "correct": true
+    },
+    {
+      "qid": "q08",
+      "kind": "entity_swap",
+      "claim": "Jupiter contains about 99.86 percent of the total mass in the solar system and has a radius of approximately 696,000 kilometers.",
+      "predicted": "contradicted",
+      "similarity": 0.883,
+      "correct": true
+    },
+    {
+      "qid": "q09",
+      "kind": "paraphrase",
+      "claim": "Our planet takes 365.25 days to go around the Sun, at a mean separation of 149.6 million km, which is what we call one astronomical unit.",
+      "predicted": "supported",
+      "similarity": 0.334,
+      "correct": true
+    },
+    {
+      "qid": "q09",
+      "kind": "entity_swap",
+      "claim": "Mars completes one orbit around the Sun in 365.25 days at an average distance of 149.6 million kilometers, defined as one astronomical unit.",
+      "predicted": "contradicted",
+      "similarity": 0.902,
+      "correct": true
+    },
+    {
+      "qid": "q10",
+      "kind": "paraphrase",
+      "claim": "No star is closer to the Sun than Proxima Centauri, about 4.24 light-years away in the Alpha Centauri system.",
+      "predicted": "contradicted",
+      "similarity": 0.582,
+      "correct": false
+    },
+    {
+      "qid": "q10",
+      "kind": "entity_swap",
+      "claim": "Barnard's Star, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Alpha Centauri system.",
+      "predicted": "contradicted",
+      "similarity": 0.8,
+      "correct": true
+    },
+    {
+      "qid": "q11",
+      "kind": "paraphrase",
+      "claim": "Our galaxy is about a hundred thousand light-years across and holds something like 200 billion stars.",
+      "predicted": "supported",
+      "similarity": 0.289,
+      "correct": true
+    },
+    {
+      "qid": "q11",
+      "kind": "entity_swap",
+      "claim": "The Andromeda galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars.",
+      "predicted": "contradicted",
+      "similarity": 0.855,
+      "correct": true
+    },
+    {
+      "qid": "q12",
+      "kind": "paraphrase",
+      "claim": "A teaspoonful of neutron star matter would weigh around ten million tons.",
+      "predicted": "unsupported",
+      "similarity": 0.221,
+      "correct": false
+    },
+    {
+      "qid": "q12",
+      "kind": "entity_swap",
+      "claim": "White dwarf material is so dense that a single teaspoon would have a mass of roughly 10 million tons.",
+      "predicted": "contradicted",
+      "similarity": 0.762,
+      "correct": true
+    },
+    {
+      "qid": "q13",
+      "kind": "paraphrase",
+      "claim": "Penzias and Wilson first picked up the cosmic microwave background in 1965; it is only about 2.725 K.",
+      "predicted": "supported",
+      "similarity": 0.296,
+      "correct": true
+    },
+    {
+      "qid": "q13",
+      "kind": "entity_swap",
+      "claim": "The cosmic microwave background radiation has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Edwin Hubble and Robert Wilson.",
+      "predicted": "contradicted",
+      "similarity": 0.712,
+      "correct": true
+    },
+    {
+      "qid": "q14",
+      "kind": "paraphrase",
+      "claim": "In 1915 Einstein put forward general relativity, which explains gravity as curved spacetime.",
+      "predicted": "supported",
+      "similarity": 0.225,
+      "correct": true
+    },
+    {
+      "qid": "q14",
+      "kind": "entity_swap",
+      "claim": "Isaac Newton published his general theory of relativity in 1915, describing gravity as the curvature of spacetime.",
+      "predicted": "contradicted",
+      "similarity": 0.725,
+      "correct": true
+    },
+    {
+      "qid": "q15",
+      "kind": "paraphrase",
+      "claim": "The first planet ever found circling a Sun-like star outside our solar system was 51 Pegasi b, in 1995.",
+      "predicted": "supported",
+      "similarity": 0.371,
+      "correct": true
+    },
+    {
+      "qid": "q15",
+      "kind": "entity_swap",
+      "claim": "51 Pegasi b, discovered in 1995, was the first exoplanet found orbiting a red dwarf star.",
+      "predicted": "contradicted",
+      "similarity": 0.594,
+      "correct": true
+    },
+    {
+      "qid": "q16",
+      "kind": "paraphrase",
+      "claim": "The ISS circles our planet roughly 400 km up and goes all the way around about every hour and a half.",
+      "predicted": "unsupported",
+      "similarity": 0.031,
+      "correct": false
+    },
+    {
+      "qid": "q16",
+      "kind": "entity_swap",
+      "claim": "The Hubble Space Telescope orbits Earth at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes.",
+      "predicted": "contradicted",
+      "similarity": 0.71,
+      "correct": true
+    },
+    {
+      "qid": "q17",
+      "kind": "paraphrase",
+      "claim": "Halley's Comet comes back roughly every 76 years; people on Earth last saw it in 1986.",
+      "predicted": "supported",
+      "similarity": 0.313,
+      "correct": true
+    },
+    {
+      "qid": "q17",
+      "kind": "entity_swap",
+      "claim": "Comet Hale-Bopp has an orbital period of about 76 years and was last visible from Earth in 1986.",
+      "predicted": "supported",
+      "similarity": 0.676,
+      "correct": false
+    },
+    {
+      "qid": "q18",
+      "kind": "paraphrase",
+      "claim": "Between 2009 and 2018, NASA's Kepler mission confirmed more than 2,600 planets around other stars.",
+      "predicted": "supported",
+      "similarity": 0.326,
+      "correct": true
+    },
+    {
+      "qid": "q18",
+      "kind": "entity_swap",
+      "claim": "NASA's Spitzer space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets.",
+      "predicted": "contradicted",
+      "similarity": 0.776,
+      "correct": true
+    },
+    {
+      "qid": "q19",
+      "kind": "paraphrase",
+      "claim": "A light-year, the distance light covers in a year, works out to around 9.46 trillion km.",
+      "predicted": "contradicted",
+      "similarity": 0.479,
+      "correct": false
+    },
+    {
+      "qid": "q19",
+      "kind": "entity_swap",
+      "claim": "One light-year, the distance sound travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.",
+      "predicted": "supported",
+      "similarity": 0.819,
+      "correct": false
+    },
+    {
+      "qid": "q20",
+      "kind": "paraphrase",
+      "claim": "Asaph Hall found both of Mars's little moons, Phobos and Deimos, in 1877.",
+      "predicted": "contradicted",
+      "similarity": 0.482,
+      "correct": false
+    },
+    {
+      "qid": "q20",
+      "kind": "entity_swap",
+      "claim": "Mars has two small moons, Phobos and Deimos, both discovered by astronomer William Herschel in 1877.",
+      "predicted": "contradicted",
+      "similarity": 0.629,
+      "correct": true
+    },
+    {
+      "qid": "q21",
+      "kind": "paraphrase",
+      "claim": "No planet in our solar system is bigger than Jupiter, which weighs roughly 318 Earths.",
+      "predicted": "unsupported",
+      "similarity": 0.221,
+      "correct": false
+    },
+    {
+      "qid": "q21",
+      "kind": "entity_swap",
+      "claim": "Jupiter is the largest planet in the solar system, with a mass about 318 times that of Mars.",
+      "predicted": "contradicted",
+      "similarity": 0.787,
+      "correct": true
+    },
+    {
+      "qid": "q22",
+      "kind": "paraphrase",
+      "claim": "The first actual picture of a black hole, M87*, came from the Event Horizon Telescope in 2019; it is thought to weigh 6.5 billion Suns.",
+      "predicted": "supported",
+      "similarity": 0.314,
+      "correct": true
+    },
+    {
+      "qid": "q22",
+      "kind": "entity_swap",
+      "claim": "In 2019, the Hubble Space Telescope produced the first direct image of a black hole, M87*, estimated to have a mass of 6.5 billion solar masses.",
+      "predicted": "contradicted",
+      "similarity": 0.722,
+      "correct": true
+    },
+    {
+      "qid": "q23",
+      "kind": "paraphrase",
+      "claim": "No known neutron star spins faster than PSR J1748-2446ad, at about 716 rotations a second.",
+      "predicted": "contradicted",
+      "similarity": 0.317,
+      "correct": false
+    },
+    {
+      "qid": "q23",
+      "kind": "entity_swap",
+      "claim": "The pulsar PSR J1748-2446ad is the fastest-spinning white dwarf known, rotating approximately 716 times per second.",
+      "predicted": "contradicted",
+      "similarity": 0.754,
+      "correct": true
+    },
+    {
+      "qid": "q24",
+      "kind": "paraphrase",
+      "claim": "Because space has been expanding, the part of the universe we can observe is about 93 billion light-years wide, more than its age would suggest.",
+      "predicted": "supported",
+      "similarity": 0.367,
+      "correct": true
+    },
+    {
+      "qid": "q24",
+      "kind": "entity_swap",
+      "claim": "The observable universe has a radius of about 93 billion light-years, larger than its age in light-years due to the expansion of space.",
+      "predicted": "contradicted",
+      "similarity": 0.841,
+      "correct": true
+    },
+    {
+      "qid": "q25",
+      "kind": "paraphrase",
+      "claim": "To escape Earth's gravity from the ground you need to reach roughly 11.2 km per second.",
+      "predicted": "supported",
+      "similarity": 0.115,
+      "correct": true
+    },
+    {
+      "qid": "q25",
+      "kind": "entity_swap",
+      "claim": "The escape velocity needed to leave the Moon's gravitational field from the surface is approximately 11.2 kilometers per second.",
+      "predicted": "contradicted",
+      "similarity": 0.819,
+      "correct": true
+    }
+  ]
+}

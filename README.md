@@ -29,11 +29,14 @@ implements a working, inspectable version of that idea end-to-end:
      the corpus at all
    - `contradiction` — a qualitative fact is flipped (e.g. "largest" →
      "smallest", or a fact is straightforwardly negated)
-4. **Faithfulness scorer** (`src/faithfulness.py`) — for each claim in an
+4. **Faithfulness scorer** (`src/faithfulness.py`): for each claim in an
    answer, finds its best-matching retrieved evidence sentence and labels
-   the claim `supported` / `unsupported` / `contradicted` using TF-IDF
-   similarity plus numeric-consistency and polarity/negation checks — a
-   transparent, offline proxy for the LLM-as-judge entailment step RAGAS
+   the claim `supported` / `unsupported` / `contradicted`. It uses TF-IDF
+   similarity, number checks (exact for years, tolerant for hedged figures),
+   whole-word negation, a **substitution check** (word alignment spots
+   "speed of *sound*" standing where the evidence says "speed of *light*"), and
+   **number-anchored support** for paraphrases. Every verdict carries a reason.
+   It's a transparent, offline proxy for the LLM-as-judge entailment step RAGAS
    normally uses.
 5. **Evaluation** (`src/evaluate.py`) — computes retrieval Recall@k / MRR
    (Section 6.1–6.2 metrics), plus precision/recall/F1 for hallucination
@@ -52,8 +55,8 @@ implements a working, inspectable version of that idea end-to-end:
 no Python, no server. Just open the file. It:
 
 - Re-implements the TF-IDF retriever and faithfulness scorer in plain
-  JavaScript (verified to reproduce the same 100% binary detection accuracy
-  / Recall@3 = 1.0 / MRR = 0.98 as the Python version)
+  JavaScript, matching scikit-learn's tokenisation. A test checks that the
+  browser and Python versions give identical labels (225/225 claims).
 - Runs the full audit over all 100 generated answers on load and shows
   live KPIs, a confusion matrix, and a faithfulness-by-type chart
 - Lets you browse every case in a filterable "ledger," expanding any one
@@ -76,42 +79,54 @@ output. It's a benchmark-and-detector, not another RAG chatbot.
 
 ```bash
 pip install -r requirements.txt
-python src/generate_data.py   # (re)build the synthetic dataset — already included
-python main.py                # run retrieval + faithfulness scoring + report
+python src/generate_data.py   # (re)build the synthetic dataset (already included)
+python main.py                # retrieval + scoring + challenge sets + report
+pytest                        # tests, including Python/browser agreement
 ```
 
-Outputs land in `outputs/`:
-- `claim_level_results.csv`, `answer_level_results.csv` — raw predictions
-- `metrics.json` — all computed metrics
-- `confusion_matrix.png`, `faithfulness_by_type.png`
-- `REPORT.md` — human-readable summary
+Outputs land in `outputs/`: per-claim and per-answer CSVs, `metrics.json`,
+`challenge_metrics.json` / `challenge_b_metrics.json`, two charts, and
+`REPORT.md`.
 
-## Results on the included benchmark
+## Results (honest version)
 
-- Retrieval: Recall@3 = 1.0, MRR = 0.98 (25 astronomy/space-physics
-  questions against a 25-document knowledge base)
-- Claim-level hallucination detection (binary: supported vs. hallucinated):
-  **100% accuracy**, F1 = 1.00 for both classes
-- 3-class detection (supported / unsupported / contradicted) is more
-  nuanced: some contradictions get flagged as "unsupported" rather than
-  "contradicted" (precision 1.00 / recall 0.68 on the contradicted class) —
-  the detector still catches the hallucination, just not always its exact type
-- Mean faithfulness score by injected type: grounded 1.00, fabrication 0.50,
-  numeric 0.00, contradiction 0.00
+**The included benchmark is easy.** It was generated from the corpus itself:
+17 of the 25 "grounded" claims are copied word for word, and each hallucination
+is a one-token edit of a corpus sentence. The first version of the detector
+scored 100% on it, but its thresholds were written with that data in view.
 
-The detector catches numeric hallucinations and outright fabrications
-essentially perfectly. Its remaining uncertainty is in *classifying* a
-hallucination's flavor (unsupported vs. contradicted) rather than in
-*detecting* that something is wrong — a useful distinction, and one that
-maps onto Section 7.2.3's point that no current technique fully
-eliminates hallucination, only reduces and categorizes it more reliably.
+So there are two **challenge sets** (`data/challenge_set*.json`) of faithful
+**paraphrases** (true, reworded) and **entity swaps** (false: "Hubble" for
+"James Webb", "sound" for "light", numbers untouched). These are the two cases
+real hallucination detection lives or dies on. Set B was written *before* the
+v2 rules were implemented and wasn't looked at while developing them.
+
+| | v1 (original) | v2 (current) |
+|---|---|---|
+| Benchmark: binary accuracy | 100% | 98.4% |
+| Challenge set A: overall | 24% | 76% |
+| **Challenge set B (held out): overall** | **46%** | **86%** |
+| ↳ paraphrases accepted | 80% | 76% |
+| ↳ entity swaps caught | 12% | 96% |
+
+v1 was essentially a word-overlap test: it rejected paraphrases and accepted
+almost any entity swap. v2's biggest gain is catching substitutions. It also
+fixes two bugs that made the number check pass false claims: years matched
+within 2% (1989 accepted for 2012), and numbers in names ("Voyager **1**",
+"**51** Pegasi b") were treated as facts. A third bug, substring negation
+(the "no" in "kno*wn*" flipped a claim to "contradicted"), is fixed too.
+
+Retrieval on the benchmark: Recall@3 = 1.0, MRR = 0.98. Like the claims,
+the questions were written from the documents, so this is optimistic as well.
 
 ## Honest limitations
 
-- The similarity/negation heuristics are a stand-in for a real NLI or
-  LLM-judge entailment model (what RAGAS actually uses). They work well on
-  this controlled benchmark but would need a proper entailment model for
-  open-domain, free-form generated text.
+- Where v2 still fails: synonym paraphrases ("little moons" for "small moons")
+  look like substitutions; meaning carried by negation ("*no* star is closer")
+  looks like a polarity flip; contradictions without a number, negation or
+  word swap ("at the outer edge" vs "at the center") get through. These are
+  exactly the cases an NLI/entailment model handles. The next step is to plug
+  one in behind the same `judge()` interface and compare it on set B.
 - The retriever is TF-IDF, not a trained dense encoder — swapping in a
   real sentence embedding model (if you have API/model access) is a
   drop-in change in `src/retriever.py`.

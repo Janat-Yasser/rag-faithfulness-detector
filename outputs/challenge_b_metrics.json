@@ -1,0 +1,410 @@
+{
+  "metrics": {
+    "paraphrase_accepted": 0.76,
+    "entity_swap_caught": 0.96,
+    "overall_accuracy": 0.86,
+    "n": 50
+  },
+  "rows": [
+    {
+      "qid": "q01",
+      "kind": "paraphrase",
+      "claim": "Since 1983, the metre has been defined using light's speed in a vacuum, about 299,792 km per second.",
+      "predicted": "supported",
+      "similarity": 0.268,
+      "correct": true
+    },
+    {
+      "qid": "q01",
+      "kind": "entity_swap",
+      "claim": "The speed of light in water is 299,792 kilometers per second, a physical constant used to define the meter since 1983.",
+      "predicted": "contradicted",
+      "similarity": 0.824,
+      "correct": true
+    },
+    {
+      "qid": "q02",
+      "kind": "paraphrase",
+      "claim": "White dwarfs can't be stable beyond about 1.4 solar masses; that ceiling is called the Chandrasekhar limit.",
+      "predicted": "supported",
+      "similarity": 0.265,
+      "correct": true
+    },
+    {
+      "qid": "q02",
+      "kind": "entity_swap",
+      "claim": "The Chandrasekhar limit, approximately 1.4 solar masses, defines the maximum mass at which a neutron star can remain stable against gravitational collapse.",
+      "predicted": "contradicted",
+      "similarity": 0.802,
+      "correct": true
+    },
+    {
+      "qid": "q03",
+      "kind": "paraphrase",
+      "claim": "Based on the cosmic microwave background, the universe is thought to be roughly 13.8 billion years old.",
+      "predicted": "supported",
+      "similarity": 0.357,
+      "correct": true
+    },
+    {
+      "qid": "q03",
+      "kind": "entity_swap",
+      "claim": "Current cosmological measurements place the age of the universe at approximately 13.8 billion years, based on observations of gamma-ray bursts.",
+      "predicted": "contradicted",
+      "similarity": 0.688,
+      "correct": true
+    },
+    {
+      "qid": "q04",
+      "kind": "paraphrase",
+      "claim": "Cosmic expansion proceeds at about 70 kilometres per second per megaparsec, the measured Hubble constant.",
+      "predicted": "supported",
+      "similarity": 0.401,
+      "correct": true
+    },
+    {
+      "qid": "q04",
+      "kind": "entity_swap",
+      "claim": "The Planck constant, which describes the rate of cosmic expansion, is measured at approximately 70 kilometers per second per megaparsec.",
+      "predicted": "contradicted",
+      "similarity": 0.856,
+      "correct": true
+    },
+    {
+      "qid": "q05",
+      "kind": "paraphrase",
+      "claim": "At the Milky Way's centre lies Sagittarius A*, a black hole of about 4.3 million solar masses some 26,000 light-years from Earth.",
+      "predicted": "supported",
+      "similarity": 0.572,
+      "correct": true
+    },
+    {
+      "qid": "q05",
+      "kind": "entity_swap",
+      "claim": "Sagittarius A*, the supermassive black hole at the center of the Milky Way, has an estimated mass of 4.3 million solar masses and lies about 26,000 light-years from the Sun's twin.",
+      "predicted": "contradicted",
+      "similarity": 0.889,
+      "correct": true
+    },
+    {
+      "qid": "q06",
+      "kind": "paraphrase",
+      "claim": "Voyager 1, which lifted off in September 1977, entered interstellar space in August 2012.",
+      "predicted": "supported",
+      "similarity": 0.406,
+      "correct": true
+    },
+    {
+      "qid": "q06",
+      "kind": "entity_swap",
+      "claim": "Pioneer 10 was launched in September 1977 and crossed into interstellar space in August 2012, making it the most distant human-made object.",
+      "predicted": "contradicted",
+      "similarity": 0.824,
+      "correct": true
+    },
+    {
+      "qid": "q07",
+      "kind": "paraphrase",
+      "claim": "The Webb telescope has operated near the Sun-Earth L2 point, about 1.5 million km from Earth, since its December 2021 launch.",
+      "predicted": "supported",
+      "similarity": 0.446,
+      "correct": true
+    },
+    {
+      "qid": "q07",
+      "kind": "entity_swap",
+      "claim": "The James Webb Space Telescope launched in December 2021 and operates near the Earth-Moon L1 point, roughly 1.5 million kilometers from Earth.",
+      "predicted": "contradicted",
+      "similarity": 0.742,
+      "correct": true
+    },
+    {
+      "qid": "q08",
+      "kind": "paraphrase",
+      "claim": "With a radius near 696,000 km, the Sun holds about 99.86% of all the mass in the solar system.",
+      "predicted": "supported",
+      "similarity": 0.341,
+      "correct": true
+    },
+    {
+      "qid": "q08",
+      "kind": "entity_swap",
+      "claim": "The Sun contains about 99.86 percent of the total mass in the galaxy and has a radius of approximately 696,000 kilometers.",
+      "predicted": "contradicted",
+      "similarity": 0.831,
+      "correct": true
+    },
+    {
+      "qid": "q09",
+      "kind": "paraphrase",
+      "claim": "One astronomical unit, Earth's average distance from the Sun, is 149.6 million km, and a full orbit takes 365.25 days.",
+      "predicted": "supported",
+      "similarity": 0.477,
+      "correct": true
+    },
+    {
+      "qid": "q09",
+      "kind": "entity_swap",
+      "claim": "Earth completes one orbit around the Moon in 365.25 days at an average distance of 149.6 million kilometers, defined as one astronomical unit.",
+      "predicted": "contradicted",
+      "similarity": 0.841,
+      "correct": true
+    },
+    {
+      "qid": "q10",
+      "kind": "paraphrase",
+      "claim": "At 4.24 light-years, Proxima Centauri in the Alpha Centauri system is the Sun's closest known stellar neighbour.",
+      "predicted": "supported",
+      "similarity": 0.423,
+      "correct": true
+    },
+    {
+      "qid": "q10",
+      "kind": "entity_swap",
+      "claim": "Proxima Centauri, the nearest known star to the Sun, lies approximately 4.24 light-years away in the Sirius system.",
+      "predicted": "contradicted",
+      "similarity": 0.832,
+      "correct": true
+    },
+    {
+      "qid": "q11",
+      "kind": "paraphrase",
+      "claim": "Roughly 200 billion stars fill the Milky Way, which measures about 100,000 light-years in diameter.",
+      "predicted": "contradicted",
+      "similarity": 0.556,
+      "correct": false
+    },
+    {
+      "qid": "q11",
+      "kind": "entity_swap",
+      "claim": "The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion planets.",
+      "predicted": "contradicted",
+      "similarity": 0.881,
+      "correct": true
+    },
+    {
+      "qid": "q12",
+      "kind": "paraphrase",
+      "claim": "Matter from a neutron star is dense enough that one teaspoon of it would weigh about 10 million tons.",
+      "predicted": "supported",
+      "similarity": 0.38,
+      "correct": true
+    },
+    {
+      "qid": "q12",
+      "kind": "entity_swap",
+      "claim": "Neutron star material is so dense that a single teacup would have a mass of roughly 10 million tons.",
+      "predicted": "contradicted",
+      "similarity": 0.776,
+      "correct": true
+    },
+    {
+      "qid": "q13",
+      "kind": "paraphrase",
+      "claim": "Arno Penzias and Robert Wilson detected the 2.725-kelvin cosmic microwave background in 1965.",
+      "predicted": "supported",
+      "similarity": 0.591,
+      "correct": true
+    },
+    {
+      "qid": "q13",
+      "kind": "entity_swap",
+      "claim": "The cosmic infrared background radiation has a temperature of approximately 2.725 kelvin and was first detected in 1965 by Arno Penzias and Robert Wilson.",
+      "predicted": "contradicted",
+      "similarity": 0.855,
+      "correct": true
+    },
+    {
+      "qid": "q14",
+      "kind": "paraphrase",
+      "claim": "General relativity, published by Albert Einstein in 1915, treats gravity as the curvature of spacetime.",
+      "predicted": "contradicted",
+      "similarity": 0.484,
+      "correct": false
+    },
+    {
+      "qid": "q14",
+      "kind": "entity_swap",
+      "claim": "Albert Einstein published his special theory of relativity in 1915, describing gravity as the curvature of spacetime.",
+      "predicted": "contradicted",
+      "similarity": 0.789,
+      "correct": true
+    },
+    {
+      "qid": "q15",
+      "kind": "paraphrase",
+      "claim": "Discovered in 1995, 51 Pegasi b was the first exoplanet seen orbiting a star like the Sun.",
+      "predicted": "supported",
+      "similarity": 0.471,
+      "correct": true
+    },
+    {
+      "qid": "q15",
+      "kind": "entity_swap",
+      "claim": "51 Pegasi b, discovered in 1995, was the first moon found orbiting a Sun-like star.",
+      "predicted": "contradicted",
+      "similarity": 0.729,
+      "correct": true
+    },
+    {
+      "qid": "q16",
+      "kind": "paraphrase",
+      "claim": "Orbiting about 400 km above Earth, the International Space Station completes a lap roughly every 90 minutes.",
+      "predicted": "supported",
+      "similarity": 0.301,
+      "correct": true
+    },
+    {
+      "qid": "q16",
+      "kind": "entity_swap",
+      "claim": "The International Space Station orbits the Moon at an altitude of about 400 kilometers, completing one full orbit approximately every 90 minutes.",
+      "predicted": "contradicted",
+      "similarity": 0.827,
+      "correct": true
+    },
+    {
+      "qid": "q17",
+      "kind": "paraphrase",
+      "claim": "Last visible from Earth in 1986, Halley's Comet returns on an orbit of about 76 years.",
+      "predicted": "supported",
+      "similarity": 0.516,
+      "correct": true
+    },
+    {
+      "qid": "q17",
+      "kind": "entity_swap",
+      "claim": "Halley's Comet has an orbital period of about 76 years and was last visible from Mars in 1986.",
+      "predicted": "contradicted",
+      "similarity": 0.751,
+      "correct": true
+    },
+    {
+      "qid": "q18",
+      "kind": "paraphrase",
+      "claim": "The Kepler space telescope, operating from 2009 to 2018, confirmed over 2,600 exoplanets for NASA.",
+      "predicted": "contradicted",
+      "similarity": 0.571,
+      "correct": false
+    },
+    {
+      "qid": "q18",
+      "kind": "entity_swap",
+      "claim": "NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 black holes.",
+      "predicted": "contradicted",
+      "similarity": 0.798,
+      "correct": true
+    },
+    {
+      "qid": "q19",
+      "kind": "paraphrase",
+      "claim": "Light moving through a vacuum covers about 9.46 trillion kilometres in a year, the length of one light-year.",
+      "predicted": "supported",
+      "similarity": 0.354,
+      "correct": true
+    },
+    {
+      "qid": "q19",
+      "kind": "entity_swap",
+      "claim": "One parsec, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.",
+      "predicted": "supported",
+      "similarity": 0.818,
+      "correct": false
+    },
+    {
+      "qid": "q20",
+      "kind": "paraphrase",
+      "claim": "In 1877 the astronomer Asaph Hall discovered Phobos and Deimos, the two small moons of Mars.",
+      "predicted": "supported",
+      "similarity": 0.629,
+      "correct": true
+    },
+    {
+      "qid": "q20",
+      "kind": "entity_swap",
+      "claim": "Jupiter has two small moons, Phobos and Deimos, both discovered by astronomer Asaph Hall in 1877.",
+      "predicted": "contradicted",
+      "similarity": 0.838,
+      "correct": true
+    },
+    {
+      "qid": "q21",
+      "kind": "paraphrase",
+      "claim": "Jupiter, the solar system's largest planet, has about 318 times Earth's mass.",
+      "predicted": "contradicted",
+      "similarity": 0.605,
+      "correct": false
+    },
+    {
+      "qid": "q21",
+      "kind": "entity_swap",
+      "claim": "Saturn is the largest planet in the solar system, with a mass about 318 times that of Earth.",
+      "predicted": "contradicted",
+      "similarity": 0.787,
+      "correct": true
+    },
+    {
+      "qid": "q22",
+      "kind": "paraphrase",
+      "claim": "M87*, a black hole of roughly 6.5 billion solar masses, became in 2019 the first black hole directly imaged, by the Event Horizon Telescope.",
+      "predicted": "supported",
+      "similarity": 0.425,
+      "correct": true
+    },
+    {
+      "qid": "q22",
+      "kind": "entity_swap",
+      "claim": "In 2019, the Event Horizon Telescope produced the first direct image of a black hole, Sagittarius A*, estimated to have a mass of 6.5 billion solar masses.",
+      "predicted": "contradicted",
+      "similarity": 0.835,
+      "correct": true
+    },
+    {
+      "qid": "q23",
+      "kind": "paraphrase",
+      "claim": "Spinning about 716 times per second, PSR J1748-2446ad is the fastest-rotating neutron star on record.",
+      "predicted": "contradicted",
+      "similarity": 0.565,
+      "correct": false
+    },
+    {
+      "qid": "q23",
+      "kind": "entity_swap",
+      "claim": "The quasar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second.",
+      "predicted": "contradicted",
+      "similarity": 0.878,
+      "correct": true
+    },
+    {
+      "qid": "q24",
+      "kind": "paraphrase",
+      "claim": "Thanks to the expansion of space, the observable universe spans roughly 93 billion light-years, more than its age in light-years.",
+      "predicted": "contradicted",
+      "similarity": 0.627,
+      "correct": false
+    },
+    {
+      "qid": "q24",
+      "kind": "entity_swap",
+      "claim": "The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of time.",
+      "predicted": "contradicted",
+      "similarity": 0.892,
+      "correct": true
+    },
+    {
+      "qid": "q25",
+      "kind": "paraphrase",
+      "claim": "An object launched from Earth's surface needs about 11.2 km/s to escape the planet's gravity.",
+      "predicted": "supported",
+      "similarity": 0.116,
+      "correct": true
+    },
+    {
+      "qid": "q25",
+      "kind": "entity_swap",
+      "claim": "The orbital velocity needed to leave Earth's gravitational field from the surface is approximately 11.2 kilometers per second.",
+      "predicted": "contradicted",
+      "similarity": 0.862,
+      "correct": true
+    }
+  ]
+}

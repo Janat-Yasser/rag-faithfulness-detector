@@ -95,18 +95,39 @@ def write_markdown_report(metrics, cm_path, bar_path, md_path):
         lines.append(f"- **{t}**: {s}")
     lines.append(f"\n![Faithfulness by type]({os.path.basename(bar_path)})\n")
 
-    lines.append("## 5. Notes and limitations\n")
+    lines.append("## 5. Held-out challenge sets (the honest numbers)\n")
+    lines.append(
+        "The benchmark above was built from the corpus sentences themselves, so it is easy: "
+        "most 'grounded' claims are copied word for word. The challenge sets test the two "
+        "cases that matter in practice: faithful **paraphrases** (should pass) and "
+        "**entity swaps** (should be flagged). Set B was written before the v2 rules and "
+        "wasn't looked at while developing them.\n"
+    )
+    lines.append("| Set | Paraphrases accepted | Entity swaps caught | Overall | n |")
+    lines.append("|---|---|---|---|---|")
+    for name, fname in (("A (seen during v2 development)", "challenge_metrics.json"),
+                        ("B (held out)", "challenge_b_metrics.json")):
+        path = os.path.join(OUT_DIR, fname)
+        if os.path.exists(path):
+            with open(path) as f:
+                m = json.load(f)["metrics"]
+            lines.append(f"| {name} | {m['paraphrase_accepted']:.0%} | {m['entity_swap_caught']:.0%} | "
+                         f"**{m['overall_accuracy']:.0%}** | {m['n']} |")
+    lines.append("")
+
+    lines.append("## 6. Notes and limitations\n")
     lines.append(
         "- The detector uses TF-IDF similarity + numeric/polarity heuristics "
         "as a transparent, offline proxy for the NLI/entailment model that "
         "RAGAS normally relies on (per Section 6.3, RAGAS uses an LLM judge). "
         "Real deployments should validate against human judgments, as the "
         "survey notes in Section 7.3.4 (Accountability and Transparency).\n"
-        "- Fabricated claims that reuse a lot of the source's vocabulary, or "
-        "contradictions that don't hinge on a number or a known superlative "
-        "pair, are the hardest cases for this heuristic — consistent with "
-        "Section 7.2.3's point that no current approach fully eliminates "
-        "hallucination.\n"
+        "- Remaining failure modes: paraphrases that swap words for synonyms "
+        "(\"little\" for \"small\") read as substitutions; meaning expressed through negation "
+        "(\"no star is closer\") reads as a polarity flip; and contradictions with no number, "
+        "negation or word swap (\"at the outer edge\" vs \"at the center\") slip through. "
+        "These are exactly what an NLI/entailment model handles, consistent with Section "
+        "7.2.3's point that no current approach fully eliminates hallucination.\n"
     )
 
     with open(md_path, "w") as f:

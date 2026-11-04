@@ -7,11 +7,14 @@ evaluate against ground truth, and produce a report.
 
 Usage: python main.py
 """
+from src.challenge import run as run_challenge
 from src.evaluate import run
 from src.report import build_report
 
 if __name__ == "__main__":
     claim_df, answer_df, metrics = run(k=3)
+    run_challenge(verbose=False)
+    run_challenge(verbose=False, set_file="challenge_set_b.json", out_name="challenge_b_metrics.json")
     build_report()
 
     print("\n=== Sample claim-level verdicts ===")
