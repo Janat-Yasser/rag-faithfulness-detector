@@ -1,135 +1,112 @@
 # RAG Faithfulness Detector
 
-A small, fully-offline machine learning project that complements **"A
-Systematic Review of Key Retrieval-Augmented Generation (RAG) Systems"**
-(Oche, Folashade, Ghosal & Biswas, 2025) — specifically its discussion of
-**hallucination and reliability** (Section 7.2.3), **RAGAS-style
-groundedness evaluation** (Section 6.3), and the **existing/potential
-solutions to hallucination** (Section 7.5.4).
+**Does the answer say what the sources say?** A claim-by-claim fact-checker for retrieval-augmented generation that marks up an answer the way a fact-checker would: underlined if a source backs it, wavy if no source mentions it, struck through if it contradicts one (with the source's version written above). It runs fully offline, in Python or entirely in your browser.
 
-## What it does
+**[Try it live](https://janat-yasser.github.io/rag-faithfulness-detector/)**, no install.
 
-The survey describes RAGAS as an evaluation framework that checks whether
-each claim in a RAG system's generated answer is actually entailed by the
-retrieved context, in order to catch hallucinations. This project
-implements a working, inspectable version of that idea end-to-end:
+![Typing an answer: changing 299,792 to 150,000 gets the number struck through with the source's figure above it; an invented claim gets a wavy underline](docs/factcheck.gif)
 
-1. **Knowledge base** (`data/corpus.json`) — 25 short factual documents on
-   astronomy and space physics (constants, cosmology, black holes, stellar
-   physics, missions, exoplanets), written in original wording from
-   well-established, verifiable facts — no fictional content, no copied text.
-2. **Retriever** (`src/retriever.py`) — a TF-IDF cosine-similarity
-   retriever standing in for the DPR-style dense retriever described in
-   Section 3.2 of the survey (same `R(x, C) -> Z` interface).
-3. **Labeled answer bank** (`data/generated_answers.json`) — 100 "generated"
-   RAG answers (4 per question, 25 questions): one fully grounded, and three with a
-   controlled, exactly-labeled hallucination each:
-   - `numeric` — a figure is silently swapped (e.g. a date, a percentage)
-   - `fabrication` — an invented sentence is appended that has no basis in
-     the corpus at all
-   - `contradiction` — a qualitative fact is flipped (e.g. "largest" →
-     "smallest", or a fact is straightforwardly negated)
-4. **Faithfulness scorer** (`src/faithfulness.py`): for each claim in an
-   answer, finds its best-matching retrieved evidence sentence and labels
-   the claim `supported` / `unsupported` / `contradicted`. It uses TF-IDF
-   similarity, number checks (exact for years, tolerant for hedged figures),
-   whole-word negation, a **substitution check** (word alignment spots
-   "speed of *sound*" standing where the evidence says "speed of *light*"), and
-   **number-anchored support** for paraphrases. Every verdict carries a reason.
-   It's a transparent, offline proxy for the LLM-as-judge entailment step RAGAS
-   normally uses.
-5. **Evaluation** (`src/evaluate.py`) — computes retrieval Recall@k / MRR
-   (Section 6.1–6.2 metrics), plus precision/recall/F1 for hallucination
-   detection at the claim level, checked against the ground-truth labels
-   built into the dataset.
-6. **Report** (`src/report.py`) — renders a confusion matrix, a bar chart
-   of mean faithfulness score per hallucination type, and a markdown
-   summary (`outputs/REPORT.md`).
+![Python](https://img.shields.io/badge/Python-scikit--learn-3776AB?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-9%20passing-brightgreen)
+![Held-out accuracy](https://img.shields.io/badge/held--out%20accuracy-86%25-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-## Interactive app
+## Why it's interesting
 
-**▶ Live demo: [janat-yasser.github.io/rag-faithfulness-detector](https://janat-yasser.github.io/rag-faithfulness-detector/)**
+- **It reports the honest number.** The built-in benchmark is easy (most true claims copy the source word for word), so 98% there means little. The headline is **86% on a held-out set** of faithful paraphrases and one-name swaps, written before the current rules existed and never used to tune them. The first version scored 46% on it.
+- **It catches swapped names, not just wrong numbers.** "The speed of light in *water*", "*Pioneer* 10 crossed into interstellar space": word alignment finds the word standing where the source has a different one. That raised name-swap detection from 12% to 96%.
+- **It shows its work.** Every verdict has a reason, the source sentence it was checked against, and the words they share. Hover a claim in the app to light them up.
+- **Same code in two languages.** The browser app reimplements the retriever and checker in plain JavaScript with scikit-learn-identical tokenisation, and a test checks that both give the same label on all 225 challenge claims.
 
-`faithfulness_audit_app.html` is a self-contained, no-dependency dashboard
-("Faithfulness Audit") that runs the entire pipeline live in the browser —
-no Python, no server. Just open the file. It:
+![The results section: 86% on the held-out set, 98.4% on the benchmark, a confusion matrix and every held-out miss](docs/results.png)
 
-- Re-implements the TF-IDF retriever and faithfulness scorer in plain
-  JavaScript, matching scikit-learn's tokenisation. A test checks that the
-  browser and Python versions give identical labels (225/225 claims).
-- Runs the full audit over all 100 generated answers on load and shows
-  live KPIs, a confusion matrix, and a faithfulness-by-type chart
-- Lets you browse every case in a filterable "ledger," expanding any one
-  to see each claim's evidence and verdict
-- Includes a "cross-examination console" — pick a question, write your
-  own answer (try inventing a fact or changing a number), and get a live
-  faithfulness score
+## How it works
 
-## Why this complements the survey rather than just re-implementing RAG
+```mermaid
+flowchart LR
+  Q[Question] --> R[TF-IDF retriever<br/>top 3 passages]
+  A[Generated answer] --> S[Split into claims]
+  R --> E[Best evidence sentence<br/>per claim]
+  S --> E
+  E --> J{judge}
+  J -->|similar, numbers agree,<br/>no swap, no negation| OK[Backed by a source]
+  J -->|numbers differ / word swapped /<br/>opposite meaning| X[Contradicts a source]
+  J -->|nothing close enough| U[Not in any source]
+```
 
-Sections 6 and 7 of the survey talk *about* evaluation metrics and
-hallucination mitigation strategies at a conceptual level (RAGAS, RAGTruth,
-citation-based grounding, self-critique). This project makes those ideas
-concrete and testable: because the hallucinations are injected
-deterministically, you get exact ground truth to measure a faithfulness
-detector against — something you can't do with a real LLM's free-form
-output. It's a benchmark-and-detector, not another RAG chatbot.
+Signals, in `src/faithfulness.py`: TF-IDF similarity; number checks (exact for years, 5% tolerance for hedged figures like "about 300,000"; numbers inside names like "Voyager 1" are skipped); whole-word negation and opposite pairs; a word-alignment **substitution check**; and **number-anchored support**, so paraphrases that keep the facts count as backed.
 
-## Running it
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-python src/generate_data.py   # (re)build the synthetic dataset (already included)
-python main.py                # retrieval + scoring + challenge sets + report
-pytest                        # tests, including Python/browser agreement
+python main.py        # retrieval, scoring, both challenge sets, outputs/REPORT.md
+pytest                # includes Python/browser agreement
 ```
 
-Outputs land in `outputs/`: per-claim and per-answer CSVs, `metrics.json`,
-`challenge_metrics.json` / `challenge_b_metrics.json`, two charts, and
-`REPORT.md`.
+Or just open `faithfulness_audit_app.html`. After changing the template or data, rebuild it with `python build_app.py`.
 
-## Results (honest version)
-
-**The included benchmark is easy.** It was generated from the corpus itself:
-17 of the 25 "grounded" claims are copied word for word, and each hallucination
-is a one-token edit of a corpus sentence. The first version of the detector
-scored 100% on it, but its thresholds were written with that data in view.
-
-So there are two **challenge sets** (`data/challenge_set*.json`) of faithful
-**paraphrases** (true, reworded) and **entity swaps** (false: "Hubble" for
-"James Webb", "sound" for "light", numbers untouched). These are the two cases
-real hallucination detection lives or dies on. Set B was written *before* the
-v2 rules were implemented and wasn't looked at while developing them.
+<details>
+<summary>Results in detail</summary>
 
 | | v1 (original) | v2 (current) |
 |---|---|---|
 | Benchmark: binary accuracy | 100% | 98.4% |
 | Challenge set A: overall | 24% | 76% |
 | **Challenge set B (held out): overall** | **46%** | **86%** |
-| ↳ paraphrases accepted | 80% | 76% |
-| ↳ entity swaps caught | 12% | 96% |
+| Paraphrases accepted (B) | 80% | 76% |
+| Name swaps caught (B) | 12% | 96% |
 
-v1 was essentially a word-overlap test: it rejected paraphrases and accepted
-almost any entity swap. v2's biggest gain is catching substitutions. It also
-fixes two bugs that made the number check pass false claims: years matched
-within 2% (1989 accepted for 2012), and numbers in names ("Voyager **1**",
-"**51** Pegasi b") were treated as facts. A third bug, substring negation
-(the "no" in "kno*wn*" flipped a claim to "contradicted"), is fixed too.
+v1 was a word-overlap test: it rejected paraphrases and accepted almost any swapped name. v2 also fixes three bugs that let false claims through or flagged true ones: years matched within 2% (1989 accepted for 2012), numbers in names counted as facts, and substring negation (the "no" in "known").
 
-Retrieval on the benchmark: Recall@3 = 1.0, MRR = 0.98. Like the claims,
-the questions were written from the documents, so this is optimistic as well.
+Retrieval: recall@3 = 1.0, MRR = 0.98. The questions were written from the documents, so that's optimistic too.
 
-## Honest limitations
+</details>
 
-- Where v2 still fails: synonym paraphrases ("little moons" for "small moons")
-  look like substitutions; meaning carried by negation ("*no* star is closer")
-  looks like a polarity flip; contradictions without a number, negation or
-  word swap ("at the outer edge" vs "at the center") get through. These are
-  exactly the cases an NLI/entailment model handles. The next step is to plug
-  one in behind the same `judge()` interface and compare it on set B.
-- The retriever is TF-IDF, not a trained dense encoder — swapping in a
-  real sentence embedding model (if you have API/model access) is a
-  drop-in change in `src/retriever.py`.
-- Claim segmentation here is given by construction; a production system
-  would need its own claim/atomic-fact extraction step, which is itself
-  an open research problem the survey doesn't deeply cover.
+<details>
+<summary>Where it still fails</summary>
+
+- Synonym paraphrases ("little moons" for "small moons") look like substitutions.
+- Meaning carried by negation ("*no* star is closer") looks like a polarity flip.
+- Contradictions without a number, negation or word swap ("at the outer edge" vs "at the center") get through.
+
+These are the cases an NLI/entailment model handles. The next step is plugging one in behind the same `judge()` interface and comparing it on set B. The app's results section lists every held-out miss; click one to open it in the checker.
+
+</details>
+
+<details>
+<summary>The data</summary>
+
+- `data/corpus.json`: 25 short documents on astronomy and space physics, in original wording from well-established facts.
+- `data/generated_answers.json`: 100 answers, 4 per question. One is faithful; three each carry one labelled problem: a wrong **number**, a **made-up** sentence, or a **contradiction** ("largest" for "smallest", a negation).
+- `data/challenge_set.json` (A) and `data/challenge_set_b.json` (B, held out): a faithful paraphrase and a one-name swap per fact.
+
+</details>
+
+<details>
+<summary>Context: the survey this accompanies</summary>
+
+Companion project to "A Systematic Review of Key Retrieval-Augmented Generation (RAG) Systems" (Oche, Folashade, Ghosal & Biswas, 2025), sections 6.3 (RAGAS-style groundedness), 7.2.3 (hallucination) and 7.5.4 (mitigations). RAGAS asks an LLM whether each claim is entailed by the retrieved context; this is a transparent, offline stand-in for that judge. Because the hallucinations are injected deliberately, there's exact ground truth to measure against, which a real LLM's free-form output can't give you.
+
+Limitations beyond the checker itself: the retriever is TF-IDF rather than a dense encoder (a drop-in change in `src/retriever.py`), and claims are split by sentence rather than by a real atomic-fact extractor.
+
+</details>
+
+<details>
+<summary>Project layout</summary>
+
+```
+main.py                       full pipeline
+src/retriever.py              TF-IDF retriever
+src/faithfulness.py           the checker (judge + reasons)
+src/challenge.py              held-out challenge sets
+src/evaluate.py, report.py    metrics, charts, REPORT.md
+app_template.html, build_app.py   the browser app and its build
+faithfulness_audit_app.html   built app (GitHub Pages)
+fonts/                        Source Serif 4, Public Sans (OFL)
+tests/                        pytest suite
+```
+
+</details>
+
+MIT licensed.
