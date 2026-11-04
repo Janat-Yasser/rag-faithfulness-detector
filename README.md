@@ -45,6 +45,8 @@ implements a working, inspectable version of that idea end-to-end:
 
 ## Interactive app
 
+**▶ Live demo: [janat-yasser.github.io/rag-faithfulness-detector](https://janat-yasser.github.io/rag-faithfulness-detector/)**
+
 `faithfulness_audit_app.html` is a self-contained, no-dependency dashboard
 ("Faithfulness Audit") that runs the entire pipeline live in the browser —
 no Python, no server. Just open the file. It:
