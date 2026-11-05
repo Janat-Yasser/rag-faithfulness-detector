@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Janat Yasser. All rights reserved.
 """Build the single-file browser app (faithfulness_audit_app.html) from
 app_template.html and the data files. Run after changing either:
 
