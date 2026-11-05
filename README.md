@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-scikit--learn-3776AB?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-9%20passing-brightgreen)
 ![Held-out accuracy](https://img.shields.io/badge/held--out%20accuracy-86%25-blue)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 
 ## Why it's interesting
 
@@ -109,4 +109,4 @@ tests/                        pytest suite
 
 </details>
 
-MIT licensed.
+© 2026 Janat Yasser. All rights reserved. See [LICENSE](LICENSE).
