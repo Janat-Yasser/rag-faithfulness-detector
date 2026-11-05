@@ -1,0 +1,700 @@
+{
+  "data": {
+    "benchmark_claims": 125,
+    "benchmark_gold": {
+      "supported": 50,
+      "contradicted": 50,
+      "unsupported": 25
+    },
+    "A": 50,
+    "B": 50,
+    "docs": 25
+  },
+  "tuned_thresholds": {
+    "sim": 0.863,
+    "overlap": 0.9091
+  },
+  "results": {
+    "benchmark": {
+      "Always supported": {
+        "acc": 0.4,
+        "k": 50,
+        "n": 125,
+        "ci": [
+          0.31833626871118836,
+          0.4876270226481242
+        ],
+        "f1": 0,
+        "prec": 0,
+        "rec": 0.0,
+        "by_kind": {
+          "contradiction": 0.0,
+          "fabrication": 0.5,
+          "grounded": 1.0,
+          "numeric": 0.0
+        }
+      },
+      "TF-IDF similarity >= 0.86 (tuned on benchmark)": {
+        "acc": 0.936,
+        "k": 117,
+        "n": 125,
+        "ci": [
+          0.8787832363713688,
+          0.9672168133020287
+        ],
+        "f1": 0.948051948051948,
+        "prec": 0.9240506329113924,
+        "rec": 0.9733333333333334,
+        "by_kind": {
+          "contradiction": 1.0,
+          "fabrication": 0.94,
+          "grounded": 0.88,
+          "numeric": 0.92
+        }
+      },
+      "Content-word overlap >= 0.91 (tuned on benchmark)": {
+        "acc": 0.808,
+        "k": 101,
+        "n": 125,
+        "ci": [
+          0.7301875145656831,
+          0.8674455480476344
+        ],
+        "f1": 0.8095238095238095,
+        "prec": 1.0,
+        "rec": 0.68,
+        "by_kind": {
+          "contradiction": 1.0,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 0.04
+        }
+      },
+      "v1 detector (original)": {
+        "acc": 1.0,
+        "k": 125,
+        "n": 125,
+        "ci": [
+          0.9701835432034374,
+          1.0
+        ],
+        "f1": 1.0,
+        "prec": 1.0,
+        "rec": 1.0,
+        "by_kind": {
+          "contradiction": 1.0,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 1.0
+        }
+      },
+      "v2 detector (full)": {
+        "acc": 0.984,
+        "k": 123,
+        "n": 125,
+        "ci": [
+          0.9435363778299932,
+          0.9956012919909341
+        ],
+        "f1": 0.9864864864864865,
+        "prec": 1.0,
+        "rec": 0.9733333333333334,
+        "by_kind": {
+          "contradiction": 0.92,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 1.0
+        }
+      },
+      "v2 without number checks": {
+        "acc": 0.792,
+        "k": 99,
+        "n": 125,
+        "ci": [
+          0.7126703312982824,
+          0.853916857932525
+        ],
+        "f1": 0.7903225806451613,
+        "prec": 1.0,
+        "rec": 0.6533333333333333,
+        "by_kind": {
+          "contradiction": 0.92,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 0.04
+        }
+      },
+      "v2 without negation/opposites": {
+        "acc": 0.952,
+        "k": 119,
+        "n": 125,
+        "ci": [
+          0.8992276262354187,
+          0.9778182968204886
+        ],
+        "f1": 0.9583333333333334,
+        "prec": 1.0,
+        "rec": 0.92,
+        "by_kind": {
+          "contradiction": 0.76,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 1.0
+        }
+      },
+      "v2 without substitution check": {
+        "acc": 0.984,
+        "k": 123,
+        "n": 125,
+        "ci": [
+          0.9435363778299932,
+          0.9956012919909341
+        ],
+        "f1": 0.9864864864864865,
+        "prec": 1.0,
+        "rec": 0.9733333333333334,
+        "by_kind": {
+          "contradiction": 0.92,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 1.0
+        }
+      },
+      "v2 without number-anchored support": {
+        "acc": 0.984,
+        "k": 123,
+        "n": 125,
+        "ci": [
+          0.9435363778299932,
+          0.9956012919909341
+        ],
+        "f1": 0.9864864864864865,
+        "prec": 1.0,
+        "rec": 0.9733333333333334,
+        "by_kind": {
+          "contradiction": 0.92,
+          "fabrication": 1.0,
+          "grounded": 1.0,
+          "numeric": 1.0
+        }
+      }
+    },
+    "A (dev)": {
+      "Always supported": {
+        "acc": 0.5,
+        "k": 25,
+        "n": 50,
+        "ci": [
+          0.36644286412332855,
+          0.6335571358766714
+        ],
+        "f1": 0,
+        "prec": 0,
+        "rec": 0.0,
+        "by_kind": {
+          "entity_swap": 0.0,
+          "paraphrase": 1.0
+        }
+      },
+      "TF-IDF similarity >= 0.86 (tuned on benchmark)": {
+        "acc": 0.44,
+        "k": 22,
+        "n": 50,
+        "ci": [
+          0.3116198721023534,
+          0.5769421319985648
+        ],
+        "f1": 0.6111111111111112,
+        "prec": 0.46808510638297873,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.0
+        }
+      },
+      "Content-word overlap >= 0.91 (tuned on benchmark)": {
+        "acc": 0.44,
+        "k": 22,
+        "n": 50,
+        "ci": [
+          0.3116198721023534,
+          0.5769421319985648
+        ],
+        "f1": 0.6111111111111112,
+        "prec": 0.46808510638297873,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.0
+        }
+      },
+      "v1 detector (original)": {
+        "acc": 0.24,
+        "k": 12,
+        "n": 50,
+        "ci": [
+          0.14297252401872207,
+          0.3741294937519236
+        ],
+        "f1": 0.09523809523809526,
+        "prec": 0.11764705882352941,
+        "rec": 0.08,
+        "by_kind": {
+          "entity_swap": 0.08,
+          "paraphrase": 0.4
+        }
+      },
+      "v2 detector (full)": {
+        "acc": 0.76,
+        "k": 38,
+        "n": 50,
+        "ci": [
+          0.6258705062480763,
+          0.8570274759812779
+        ],
+        "f1": 0.7857142857142856,
+        "prec": 0.7096774193548387,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.64
+        }
+      },
+      "v2 without number checks": {
+        "acc": 0.62,
+        "k": 31,
+        "n": 50,
+        "ci": [
+          0.4815019502239357,
+          0.7413740415742278
+        ],
+        "f1": 0.6984126984126985,
+        "prec": 0.5789473684210527,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.36
+        }
+      },
+      "v2 without negation/opposites": {
+        "acc": 0.82,
+        "k": 41,
+        "n": 50,
+        "ci": [
+          0.6920368054529739,
+          0.902299172675462
+        ],
+        "f1": 0.830188679245283,
+        "prec": 0.7857142857142857,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.76
+        }
+      },
+      "v2 without substitution check": {
+        "acc": 0.36,
+        "k": 18,
+        "n": 50,
+        "ci": [
+          0.24138562967182875,
+          0.49859237989698046
+        ],
+        "f1": 0,
+        "prec": 0.0,
+        "rec": 0.0,
+        "by_kind": {
+          "entity_swap": 0.0,
+          "paraphrase": 0.72
+        }
+      },
+      "v2 without number-anchored support": {
+        "acc": 0.62,
+        "k": 31,
+        "n": 50,
+        "ci": [
+          0.4815019502239357,
+          0.7413740415742278
+        ],
+        "f1": 0.6984126984126985,
+        "prec": 0.5789473684210527,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.36
+        }
+      }
+    },
+    "B (held-out)": {
+      "Always supported": {
+        "acc": 0.5,
+        "k": 25,
+        "n": 50,
+        "ci": [
+          0.36644286412332855,
+          0.6335571358766714
+        ],
+        "f1": 0,
+        "prec": 0,
+        "rec": 0.0,
+        "by_kind": {
+          "entity_swap": 0.0,
+          "paraphrase": 1.0
+        }
+      },
+      "TF-IDF similarity >= 0.86 (tuned on benchmark)": {
+        "acc": 0.42,
+        "k": 21,
+        "n": 50,
+        "ci": [
+          0.2937479723456693,
+          0.5576680331222217
+        ],
+        "f1": 0.5915492957746479,
+        "prec": 0.45652173913043476,
+        "rec": 0.84,
+        "by_kind": {
+          "entity_swap": 0.84,
+          "paraphrase": 0.0
+        }
+      },
+      "Content-word overlap >= 0.91 (tuned on benchmark)": {
+        "acc": 0.48,
+        "k": 24,
+        "n": 50,
+        "ci": [
+          0.3479691239550571,
+          0.6148848774119157
+        ],
+        "f1": 0.6285714285714286,
+        "prec": 0.4888888888888889,
+        "rec": 0.88,
+        "by_kind": {
+          "entity_swap": 0.88,
+          "paraphrase": 0.08
+        }
+      },
+      "v1 detector (original)": {
+        "acc": 0.46,
+        "k": 23,
+        "n": 50,
+        "ci": [
+          0.3296943460178263,
+          0.5960136567161192
+        ],
+        "f1": 0.18181818181818182,
+        "prec": 0.375,
+        "rec": 0.12,
+        "by_kind": {
+          "entity_swap": 0.12,
+          "paraphrase": 0.8
+        }
+      },
+      "v2 detector (full)": {
+        "acc": 0.86,
+        "k": 43,
+        "n": 50,
+        "ci": [
+          0.738135428014719,
+          0.9304925473797714
+        ],
+        "f1": 0.8727272727272728,
+        "prec": 0.8,
+        "rec": 0.96,
+        "by_kind": {
+          "entity_swap": 0.96,
+          "paraphrase": 0.76
+        }
+      },
+      "v2 without number checks": {
+        "acc": 0.8,
+        "k": 40,
+        "n": 50,
+        "ci": [
+          0.6696262789551477,
+          0.8875637005402612
+        ],
+        "f1": 0.8275862068965517,
+        "prec": 0.7272727272727273,
+        "rec": 0.96,
+        "by_kind": {
+          "entity_swap": 0.96,
+          "paraphrase": 0.64
+        }
+      },
+      "v2 without negation/opposites": {
+        "acc": 0.86,
+        "k": 43,
+        "n": 50,
+        "ci": [
+          0.738135428014719,
+          0.9304925473797714
+        ],
+        "f1": 0.8727272727272728,
+        "prec": 0.8,
+        "rec": 0.96,
+        "by_kind": {
+          "entity_swap": 0.96,
+          "paraphrase": 0.76
+        }
+      },
+      "v2 without substitution check": {
+        "acc": 0.5,
+        "k": 25,
+        "n": 50,
+        "ci": [
+          0.36644286412332855,
+          0.6335571358766714
+        ],
+        "f1": 0,
+        "prec": 0,
+        "rec": 0.0,
+        "by_kind": {
+          "entity_swap": 0.0,
+          "paraphrase": 1.0
+        }
+      },
+      "v2 without number-anchored support": {
+        "acc": 0.8,
+        "k": 40,
+        "n": 50,
+        "ci": [
+          0.6696262789551477,
+          0.8875637005402612
+        ],
+        "f1": 0.8275862068965517,
+        "prec": 0.7272727272727273,
+        "rec": 0.96,
+        "by_kind": {
+          "entity_swap": 0.96,
+          "paraphrase": 0.64
+        }
+      }
+    }
+  },
+  "mcnemar_v2_vs_v1": {
+    "benchmark": {
+      "p": 0.5,
+      "v2_only_correct": 0,
+      "v1_only_correct": 2
+    },
+    "A (dev)": {
+      "p": 6.16488978266716e-06,
+      "v2_only_correct": 30,
+      "v1_only_correct": 4
+    },
+    "B (held-out)": {
+      "p": 0.00032491423189640045,
+      "v2_only_correct": 25,
+      "v1_only_correct": 5
+    }
+  },
+  "three_class_benchmark": {
+    "v1 detector (original)": {
+      "macro_f1": 0.8556998556998557,
+      "per_class": {
+        "supported": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 50.0
+        },
+        "unsupported": {
+          "precision": 0.6097560975609756,
+          "recall": 1.0,
+          "f1-score": 0.7575757575757576,
+          "support": 25.0
+        },
+        "contradicted": {
+          "precision": 1.0,
+          "recall": 0.68,
+          "f1-score": 0.8095238095238095,
+          "support": 50.0
+        }
+      },
+      "confusion": [
+        [
+          50,
+          0,
+          0
+        ],
+        [
+          0,
+          25,
+          0
+        ],
+        [
+          0,
+          16,
+          34
+        ]
+      ]
+    },
+    "v2 detector (full)": {
+      "macro_f1": 0.8006658527376942,
+      "per_class": {
+        "supported": {
+          "precision": 0.9615384615384616,
+          "recall": 1.0,
+          "f1-score": 0.9803921568627451,
+          "support": 50.0
+        },
+        "unsupported": {
+          "precision": 0.5675675675675675,
+          "recall": 0.84,
+          "f1-score": 0.6774193548387096,
+          "support": 25.0
+        },
+        "contradicted": {
+          "precision": 0.8888888888888888,
+          "recall": 0.64,
+          "f1-score": 0.7441860465116279,
+          "support": 50.0
+        }
+      },
+      "confusion": [
+        [
+          50,
+          0,
+          0
+        ],
+        [
+          0,
+          21,
+          4
+        ],
+        [
+          2,
+          16,
+          32
+        ]
+      ]
+    }
+  },
+  "threshold_sweep": [
+    {
+      "t": 0.15,
+      "benchmark": 0.96,
+      "A (dev)": 0.78,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.18,
+      "benchmark": 0.968,
+      "A (dev)": 0.78,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.2,
+      "benchmark": 0.976,
+      "A (dev)": 0.78,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.22,
+      "benchmark": 0.976,
+      "A (dev)": 0.78,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.25,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.28,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.3,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.33,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.36,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.4,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.86
+    },
+    {
+      "t": 0.45,
+      "benchmark": 0.984,
+      "A (dev)": 0.76,
+      "B (held-out)": 0.84
+    }
+  ],
+  "heldout_misses": [
+    {
+      "kind": "paraphrase",
+      "claim": "Roughly 200 billion stars fill the Milky Way, which measures about 100,000 light-years in diameter.",
+      "evidence": "The Milky Way galaxy spans roughly 100,000 light-years in diameter and contains an estimated 200 billion stars.",
+      "sim": 0.556,
+      "predicted": "contradicted",
+      "reason": "substituted: measur / galaxy span"
+    },
+    {
+      "kind": "paraphrase",
+      "claim": "General relativity, published by Albert Einstein in 1915, treats gravity as the curvature of spacetime.",
+      "evidence": "Albert Einstein published his general theory of relativity in 1915, describing gravity as the curvature of spacetime.",
+      "sim": 0.484,
+      "predicted": "contradicted",
+      "reason": "substituted: treat / describ"
+    },
+    {
+      "kind": "paraphrase",
+      "claim": "The Kepler space telescope, operating from 2009 to 2018, confirmed over 2,600 exoplanets for NASA.",
+      "evidence": "NASA's Kepler space telescope, active from 2009 to 2018, confirmed the discovery of over 2,600 exoplanets.",
+      "sim": 0.571,
+      "predicted": "contradicted",
+      "reason": "substituted: operat / active"
+    },
+    {
+      "kind": "entity_swap",
+      "claim": "One parsec, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.",
+      "evidence": "One light-year, the distance light travels in a vacuum in one year, is equal to about 9.46 trillion kilometers.",
+      "sim": 0.818,
+      "predicted": "supported",
+      "reason": "matches evidence"
+    },
+    {
+      "kind": "paraphrase",
+      "claim": "Jupiter, the solar system's largest planet, has about 318 times Earth's mass.",
+      "evidence": "Jupiter is the largest planet in the solar system, with a mass about 318 times that of Earth.",
+      "sim": 0.605,
+      "predicted": "contradicted",
+      "reason": "substituted: earth' / earth"
+    },
+    {
+      "kind": "paraphrase",
+      "claim": "Spinning about 716 times per second, PSR J1748-2446ad is the fastest-rotating neutron star on record.",
+      "evidence": "The pulsar PSR J1748-2446ad is the fastest-spinning neutron star known, rotating approximately 716 times per second.",
+      "sim": 0.565,
+      "predicted": "contradicted",
+      "reason": "substituted: record / known"
+    },
+    {
+      "kind": "paraphrase",
+      "claim": "Thanks to the expansion of space, the observable universe spans roughly 93 billion light-years, more than its age in light-years.",
+      "evidence": "The observable universe has a diameter of about 93 billion light-years, larger than its age in light-years due to the expansion of space.",
+      "sim": 0.627,
+      "predicted": "contradicted",
+      "reason": "substituted: span / diameter"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+flowchart LR
+  Q[Question] --> R[TF-IDF retriever<br/>top-3 passages]
+  R --> C[Context sentences]
+  A[Generated answer] --> S[Split into claims]
+  S --> E[Best evidence sentence<br/>per claim]
+  C --> E
+  E --> J{Judge}
+  J -->|similar; numbers agree;<br/>no flip; no substitution| SUP[Supported]
+  J -->|number conflict, polarity flip<br/>or word substitution| CON[Contradicted]
+  J -->|no sufficiently<br/>similar evidence| UNS[Unsupported]
