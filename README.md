@@ -7,7 +7,7 @@
 ![Typing an answer: changing 299,792 to 150,000 gets the number struck through with the source's figure above it; an invented claim gets a wavy underline](docs/factcheck.gif)
 
 ![Python](https://img.shields.io/badge/Python-scikit--learn-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-9%20passing-brightgreen)
+[![CI](https://github.com/Janat-Yasser/rag-faithfulness-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/Janat-Yasser/rag-faithfulness-detector/actions/workflows/ci.yml)
 ![Held-out accuracy](https://img.shields.io/badge/held--out%20accuracy-86%25-blue)
 ![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 
